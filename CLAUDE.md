@@ -130,4 +130,9 @@ The project runs entirely on Vercel as **two linked projects** under the `mike-p
   (the second origin lets Chancellors use `/admin` on the backend domain).
 - **DNS:** `collegebeta.phever.dev` is a Cloudflare CNAME → `cname.vercel-dns.com` (DNS-only).
 - **Admin:** Chancellors manage at https://collegebeta-api.vercel.app/admin.
-- **Redeploy:** `cd backend && vercel deploy --prod` / `cd frontend && vercel deploy --prod`.
+- **Redeploy (manual):** `cd backend && vercel deploy --prod` / `cd frontend && vercel deploy --prod`.
+- **CI/CD:** `.github/workflows/deploy.yml` runs on push to `master` (e.g. a merged PR): it installs
+  backend deps, runs `collectstatic` + `migrate` (against Neon), then `vercel deploy --prod` for both
+  projects. Project/org IDs are in the workflow; secrets needed are **`VERCEL_TOKEN`** (a Vercel
+  access token) and **`DATABASE_URL`** (the Neon *unpooled* URL, already set). Deploy steps no-op
+  until `VERCEL_TOKEN` is present.

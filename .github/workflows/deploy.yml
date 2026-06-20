@@ -1,0 +1,76 @@
+name: Deploy to Vercel
+
+# CI/CD for the Contest Hall. On every push to master (e.g. a merged PR) this
+# builds and deploys both Vercel projects to production. The backend job also
+# collects static assets (for the Django admin) and applies database migrations
+# to Neon before the new function goes live.
+#
+# Required repository secrets:
+#   VERCEL_TOKEN  - a Vercel access token (https://vercel.com/account/settings/tokens)
+#   DATABASE_URL  - the Neon *unpooled* connection string (for migrations)
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  VERCEL_ORG_ID: team_pRQSv6sGiVAKmiGeDWtlW1Nm
+
+jobs:
+  backend:
+    name: Migrate + deploy backend
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_PROJECT_ID: prj_bUtAgDqlKQyLmckiB5WfyOruTJfw
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Collect static assets (WhiteNoise manifest for the admin)
+        working-directory: backend
+        env:
+          ENVIRONMENT: production
+          DJANGO_SECRET_KEY: ci-build-placeholder-not-used-at-runtime
+        run: python manage.py collectstatic --noinput
+
+      - name: Apply migrations to Neon
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python manage.py migrate --noinput
+
+      - name: Deploy backend to Vercel (production)
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        working-directory: backend
+        run: |
+          npm install -g vercel@latest
+          vercel deploy --prod --yes --token="$VERCEL_TOKEN"
+
+  frontend:
+    name: Deploy frontend
+    runs-on: ubuntu-latest
+    needs: backend
+    env:
+      VERCEL_PROJECT_ID: prj_qSJNXLk6qMJi7ziTV9dUCoAkQzcG
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy frontend to Vercel (production)
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        working-directory: frontend
+        run: |
+          npm install -g vercel@latest
+          vercel deploy --prod --yes --token="$VERCEL_TOKEN"
