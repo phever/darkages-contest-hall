@@ -1,0 +1,26 @@
+name: Send review reminders
+
+# Daily trigger for the Contest Hall reminder endpoint. (Vercel's own Cron is not
+# used because the backend uses the legacy `builds` vercel.json, which ignores
+# `crons`.) The endpoint is idempotent, so an occasional double-run is harmless.
+#
+# Required repository secret: CRON_SECRET (matches the backend's CRON_SECRET env).
+
+on:
+  schedule:
+    - cron: '0 14 * * *'   # 14:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the reminder endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://collegebeta-api.vercel.app/api/cron/send-reminders/)
+          echo "HTTP $code"; cat /tmp/out.json; echo
+          test "$code" = "200"

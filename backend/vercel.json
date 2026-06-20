@@ -9,8 +9,5 @@
   ],
   "routes": [
     { "src": "/(.*)", "dest": "config/wsgi.py" }
-  ],
-  "crons": [
-    { "path": "/api/cron/send-reminders/", "schedule": "0 14 * * *" }
   ]
 }
