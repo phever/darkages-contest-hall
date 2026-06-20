@@ -117,9 +117,12 @@ The project runs entirely on Vercel as **two linked projects** under the `mike-p
   Migrate/seed against the **unpooled** URL; the function uses the pooled `DATABASE_URL` with
   `DB_CONN_MAX_AGE=0`. Run `migrate` + `seed_board` locally against `DATABASE_URL_UNPOOLED` after any
   schema change.
-- **Same-origin proxy:** `frontend/vercel.json` rewrites `/api/(.*)` → `collegebeta-api.vercel.app/api/$1`
-  so auth cookies stay first-party on `collegebeta.phever.dev`. **Gotcha:** use the `(.*)`/`$1` form —
-  the `:path*` form silently 404s for external (cross-project) rewrites.
+- **Same-origin proxy:** `frontend/vercel.json` rewrites `/api/(.*)`, `/admin(.*)`, and `/static/(.*)`
+  → `collegebeta-api.vercel.app/...` so the API **and the Django admin** are served first-party on
+  `collegebeta.phever.dev` (auth cookies/CSRF stay first-party). **Gotcha:** use the `(.*)`/`$1` form —
+  the `:path*` form silently 404s for external (cross-project) rewrites. The SPA's strict CSP/security
+  headers are scoped to exclude `/admin` and `/static` (`source: /((?!admin|static).*)`) so Django's
+  own admin headers/inline assets aren't clobbered.
 - **Backend build:** `backend/vercel.json` builds `config/wsgi.py` with `@vercel/python` (explicit
   `builds` avoids treating the Django `api/` package as functions) and `includeFiles: staticfiles/**`
   so WhiteNoise can serve the admin assets. Run `collectstatic` before deploying.
@@ -129,7 +132,8 @@ The project runs entirely on Vercel as **two linked projects** under the `mike-p
   `CSRF_TRUSTED_ORIGINS=https://collegebeta.phever.dev,https://collegebeta-api.vercel.app`
   (the second origin lets Chancellors use `/admin` on the backend domain).
 - **DNS:** `collegebeta.phever.dev` is a Cloudflare CNAME → `cname.vercel-dns.com` (DNS-only).
-- **Admin:** Chancellors manage at https://collegebeta-api.vercel.app/admin.
+- **Admin:** Chancellors manage at https://collegebeta.phever.dev/admin (proxied to Django;
+  https://collegebeta-api.vercel.app/admin still works directly as a fallback).
 - **Redeploy (manual):** `cd backend && vercel deploy --prod` / `cd frontend && vercel deploy --prod`.
 - **CI/CD:** `.github/workflows/deploy.yml` runs on push to `master` (e.g. a merged PR): it installs
   backend deps, runs `collectstatic` + `migrate` (against Neon), then `vercel deploy --prod` for both

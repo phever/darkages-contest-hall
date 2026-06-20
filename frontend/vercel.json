@@ -7,13 +7,21 @@
       "destination": "https://collegebeta-api.vercel.app/api/$1"
     },
     {
+      "source": "/admin(.*)",
+      "destination": "https://collegebeta-api.vercel.app/admin$1"
+    },
+    {
+      "source": "/static/(.*)",
+      "destination": "https://collegebeta-api.vercel.app/static/$1"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/((?!admin|static).*)",
       "headers": [
         {
           "key": "Content-Security-Policy",
