@@ -197,3 +197,258 @@ a:hover {
   color: #fb7185;
   border: 1px solid rgba(244, 63, 94, 0.3);
 }
+
+/* ===== Contest Hall Board ===== */
+.board-title {
+  text-align: center;
+  font-size: 2.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.board-info {
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.board-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chip {
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.filter-chip:hover {
+  color: var(--text-main);
+  border-color: var(--text-muted);
+}
+
+.filter-chip.active {
+  background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+  color: #fff;
+  border-color: transparent;
+}
+
+.submission-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+.submission-box {
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+}
+
+.submission-box:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.submission-box .box-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 0.85rem;
+  line-height: 1.35;
+}
+
+/* Progress bar — 4 steps, colored as on the College board */
+.progress-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.step-container {
+  display: flex;
+  flex-grow: 1;
+  gap: 3px;
+}
+
+.step {
+  flex-grow: 1;
+  height: 12px;
+  border-radius: 3px;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.step.complete.step-1 { background-color: #0077ff; }
+.step.complete.step-2 { background-color: #ff9900; }
+.step.complete.step-3 { background-color: #33cc33; }
+.step.complete.step-4 { background-color: #ff33cc; }
+
+.progress-text {
+  min-width: 34px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.submission-details {
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+}
+
+.submission-details .row {
+  margin: 0.3rem 0;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.submission-details .row strong {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.submission-details a {
+  color: #fbbf24;
+}
+
+.submission-details a:hover {
+  color: #fcd34d;
+  text-decoration: underline;
+}
+
+.subject-tag {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(99, 102, 241, 0.18);
+  color: var(--primary-hover);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+/* Recommendation badges by recognition level */
+.rec-badge {
+  display: inline-block;
+  padding: 0.1rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.rec-Aisling  { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236,72,153,.4); }
+.rec-Kingdom  { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168,85,247,.4); }
+.rec-Clave    { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16,185,129,.4); }
+.rec-Village  { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,.4); }
+.rec-NoAward  { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border: 1px solid rgba(148,163,184,.35); }
+.rec-Pending  { background: rgba(234, 179, 8, 0.18); color: #fcd34d; border: 1px solid rgba(234,179,8,.35); }
+
+/* Contest Steps explanation section */
+.steps-section {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.steps-section h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.step-card {
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-top: 4px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+.step-card.s1 { border-top-color: #0077ff; }
+.step-card.s2 { border-top-color: #ff9900; }
+.step-card.s3 { border-top-color: #33cc33; }
+.step-card.s4 { border-top-color: #ff33cc; }
+
+.step-card h3 {
+  font-size: 1.05rem;
+  margin-bottom: 0.6rem;
+}
+
+.step-card p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+/* Review (voting) area */
+.review-area {
+  margin-top: 0.9rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 0.8rem;
+}
+
+.review-list {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.review-item {
+  padding: 0.4rem 0;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.muted { color: var(--text-muted); }
+.center { text-align: center; }
+.mt-2 { margin-top: 2rem; }
+.form-message { text-align: center; padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; }
+.form-message.ok { background: rgba(16,185,129,.15); color: #34d399; }
+.form-message.err { background: rgba(244,63,94,.15); color: #fb7185; }
+
+select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+select:focus { outline: none; border-color: var(--primary); }
