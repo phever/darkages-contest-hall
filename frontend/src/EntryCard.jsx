@@ -151,10 +151,52 @@ function ChancellorIntentions({ entry }) {
   );
 }
 
+// Chancellors upload an archived copy: presign -> direct PUT to storage -> save URL.
+function ArchiveUploader({ entry, onUploaded }) {
+  const [status, setStatus] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    try {
+      setStatus('Requesting upload URL…');
+      const { data } = await api.post(`entries/${entry.id}/archive-upload-url/`, {
+        filename: file.name, content_type: file.type || 'application/octet-stream',
+      });
+      setStatus('Uploading to archive…');
+      const put = await fetch(data.upload_url, {
+        method: 'PUT', body: file, headers: { 'Content-Type': data.content_type },
+      });
+      if (!put.ok) throw new Error('upload failed');
+      await api.patch(`entries/${entry.id}/`, { archived_location_url: data.public_url });
+      onUploaded(data.public_url);
+      setStatus('Archived copy uploaded ✓');
+    } catch {
+      setStatus('Upload failed.');
+    } finally {
+      setBusy(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <div className="review-area">
+      <label className="muted" style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.4rem' }}>
+        Chancellor: upload archived copy
+      </label>
+      <input type="file" onChange={handleFile} disabled={busy} style={{ fontSize: '0.82rem' }} />
+      {status && <p className="muted" style={{ fontSize: '0.8rem', marginTop: '0.4rem' }}>{status}</p>}
+    </div>
+  );
+}
+
 export default function EntryCard({ entry, user }) {
   const total = entry.total_steps || 4;
   const isVerifiedNoble = user?.is_verified;
   const isChancellor = user?.role === 'admin';
+  const [archivedUrl, setArchivedUrl] = useState(entry.archived_location_url);
 
   return (
     <div className="submission-box">
@@ -178,8 +220,8 @@ export default function EntryCard({ entry, user }) {
         <div className="row">
           <strong>Archived Location:</strong>
           <span>
-            {entry.archived_location_url
-              ? <a href={entry.archived_location_url} target="_blank" rel="noreferrer">Click Here</a>
+            {archivedUrl
+              ? <a href={archivedUrl} target="_blank" rel="noreferrer">Click Here</a>
               : <span className="muted">—</span>}
           </span>
         </div>
@@ -196,6 +238,7 @@ export default function EntryCard({ entry, user }) {
 
       {isVerifiedNoble && <VoteIntentionPanel entry={entry} />}
       {isChancellor && <ChancellorIntentions entry={entry} />}
+      {isChancellor && <ArchiveUploader entry={entry} onUploaded={setArchivedUrl} />}
     </div>
   );
 }

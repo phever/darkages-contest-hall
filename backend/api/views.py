@@ -1,9 +1,11 @@
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny, IsAdminUser,
 )
 
+from . import storage
 from .models import Contest, Entry, VoteIntention, WorkflowStep
 from .serializers import (
     ContestSerializer, ContestListSerializer, EntrySerializer,
@@ -64,6 +66,23 @@ class EntryViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         entry = serializer.save()
         return Response(EntrySerializer(entry).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='archive-upload-url',
+            permission_classes=[IsAdminUser])
+    def archive_upload_url(self, request, pk=None):
+        """Chancellor-only: presigned PUT URL to upload an archived copy to storage."""
+        if not storage.is_configured():
+            return Response({'detail': 'Archive storage is not configured.'},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        entry = self.get_object()
+        filename = request.data.get('filename', 'file')
+        content_type = request.data.get('content_type') or 'application/octet-stream'
+        key = storage.safe_key(entry.id, filename)
+        return Response({
+            'upload_url': storage.presign_put(key, content_type),
+            'public_url': storage.public_url(key),
+            'content_type': content_type,
+        })
 
 
 class VoteIntentionViewSet(viewsets.ModelViewSet):

@@ -244,6 +244,16 @@ if IS_PRODUCTION:
     X_FRAME_OPTIONS = 'DENY'
 
 
+# --- archive object storage (MinIO on the 'gum' server, served at archive.phever.dev) ---
+
+ARCHIVE_S3_ENDPOINT = os.getenv('ARCHIVE_S3_ENDPOINT', 'https://archive.phever.dev')
+ARCHIVE_PUBLIC_BASE_URL = os.getenv('ARCHIVE_PUBLIC_BASE_URL', 'https://archive.phever.dev')
+ARCHIVE_S3_BUCKET = os.getenv('ARCHIVE_S3_BUCKET', 'archive')
+ARCHIVE_S3_ACCESS_KEY = os.getenv('ARCHIVE_S3_ACCESS_KEY', '')
+ARCHIVE_S3_SECRET_KEY = os.getenv('ARCHIVE_S3_SECRET_KEY', '')
+ARCHIVE_S3_REGION = os.getenv('ARCHIVE_S3_REGION', 'us-east-1')
+
+
 # --- email --------------------------------------------------------------------
 
 if IS_PRODUCTION:
