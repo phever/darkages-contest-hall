@@ -452,3 +452,28 @@ select {
   font-family: 'Inter', sans-serif;
 }
 select:focus { outline: none; border-color: var(--primary); }
+
+/* Board footer */
+.board-footer {
+  margin-top: 3.5rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.board-footer-sep { opacity: 0.5; }
+
+.board-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.board-footer-link:hover { color: var(--text-main); }
