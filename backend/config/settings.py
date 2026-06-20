@@ -262,7 +262,13 @@ if IS_PRODUCTION:
         "MAILGUN_API_KEY": os.getenv('MAILGUN_API_KEY'),
         "MAILGUN_SENDER_DOMAIN": os.getenv('MAILGUN_SENDER_DOMAIN'),
     }
-    DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('MAILGUN_SENDER_DOMAIN')}"
+    # Set MAILGUN_API_URL=https://api.eu.mailgun.net/v3 for EU-region domains.
+    if os.getenv('MAILGUN_API_URL'):
+        ANYMAIL["MAILGUN_API_URL"] = os.getenv('MAILGUN_API_URL')
+    DEFAULT_FROM_EMAIL = os.getenv(
+        'DEFAULT_FROM_EMAIL',
+        f"Mileth College Contest Hall <noreply@{os.getenv('MAILGUN_SENDER_DOMAIN')}>",
+    )
 else:
     EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
     EMAIL_FILE_PATH = BASE_DIR / "sent_emails"
