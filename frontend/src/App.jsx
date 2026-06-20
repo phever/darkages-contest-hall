@@ -1,43 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import api from './api';
+import { useState } from 'react';
 import './index.css';
+import Board from './Board';
+import SubmissionForm from './SubmissionForm';
 import Login from './Login';
-import ContestDetails from './ContestDetails';
-
-function Home() {
-  const [contests, setContests] = useState([]);
-
-  useEffect(() => {
-    api.get('contests/')
-      .then(res => setContests(res.data))
-      .catch(err => console.error(err));
-  }, []);
-
-  return (
-    <div>
-      <h2>Active Contests</h2>
-      <div className="grid">
-        {contests.length > 0 ? contests.map(contest => (
-          <div key={contest.id} className="card">
-            <h3>{contest.title}</h3>
-            <p>{contest.description}</p>
-            <div style={{ marginTop: '1rem' }}>
-              <span className={`badge ${contest.is_active ? 'badge-active' : 'badge-inactive'}`}>
-                {contest.is_active ? 'Active' : 'Ended'}
-              </span>
-            </div>
-            <Link to={`/contest/${contest.id}`} className="btn btn-primary" style={{ marginTop: '1.5rem', width: '100%' }}>
-              View Entries
-            </Link>
-          </div>
-        )) : (
-          <p>No contests found. Check back later!</p>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('access_token'));
@@ -52,9 +18,12 @@ function App() {
     <Router>
       <div className="app-container">
         <header className="header">
-          <h1>Contest Hall</h1>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <h1>Contest Hall</h1>
+          </Link>
           <nav>
-            <Link to="/">Home</Link>
+            <Link to="/">Board</Link>
+            <Link to="/submit">Submit</Link>
             {isLoggedIn ? (
               <button className="btn btn-outline" onClick={handleLogout}>Logout</button>
             ) : (
@@ -65,8 +34,8 @@ function App() {
 
         <main>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/contest/:id" element={<ContestDetails isLoggedIn={isLoggedIn} />} />
+            <Route path="/" element={<Board isLoggedIn={isLoggedIn} />} />
+            <Route path="/submit" element={<SubmissionForm />} />
             <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
           </Routes>
         </main>
