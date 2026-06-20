@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from './api';
 
-export default function Login({ setIsLoggedIn }) {
+export default function Login({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -10,14 +10,18 @@ export default function Login({ setIsLoggedIn }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
     try {
-      const res = await api.post('token/', { username, password });
-      localStorage.setItem('access_token', res.data.access);
-      localStorage.setItem('refresh_token', res.data.refresh);
-      setIsLoggedIn(true);
+      // The server sets httpOnly access/refresh cookies; nothing is stored in JS.
+      await api.post('auth/login/', { username, password });
+      await onLogin();
       navigate('/');
     } catch (err) {
-      setError('Invalid credentials');
+      if (err?.response?.status === 429) {
+        setError('Too many attempts. Please wait a minute and try again.');
+      } else {
+        setError('Invalid credentials');
+      }
     }
   };
 

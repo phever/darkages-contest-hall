@@ -78,8 +78,41 @@ works, and demo users. Pass `--fresh` to wipe existing entries first. Demo login
 Pages: `/` (the board — submission grid + Contest Steps section), `/submit` (the public Step-1
 submission pipeline), and `/login`. Logged-in nobles can review submissions inline from the board.
 
-## Important Notes & Future Considerations
+## Security model
 
-- **Authentication Flow:** Users currently receive an access token and refresh token upon login. The frontend logic manages storing these in `localStorage` and attaching them to requests via `axios` interceptors.
-- **Email Verification:** Email is configured via Anymail + `python-dotenv` (see `config/settings.py`). In `dev` it uses the file-based backend (writes to `backend/sent_emails/`); set `ENVIRONMENT=production` with `MAILGUN_*` keys in `.env` to send through Mailgun. The `is_verified` flag on the User model gates voters before allowing them to vote.
-- **CORS:** `CORS_ALLOW_ALL_ORIGINS` is currently set to `True` in the Django settings for ease of local development. This must be restricted in a production environment.
+Configuration is environment-driven (`config/settings.py` reads `.env`; see `.env.template`).
+`ENVIRONMENT=production` flips on the hardened settings; dev relaxes them so the app runs locally.
+
+- **Authentication:** JWT delivered as **httpOnly cookies** (`access_token` / `refresh_token`), so
+  tokens are never exposed to JavaScript (XSS can't read them). `api/authentication.py`
+  (`CookieJWTAuthentication`) reads the access cookie and **enforces CSRF** on unsafe methods; the
+  SPA echoes Django's `csrftoken` cookie as the `X-CSRFToken` header (see `frontend/src/api.js`).
+  Refresh tokens **rotate and are blacklisted** on use/logout (`token_blacklist` app). Access
+  lifetime 15 min, refresh 7 days (overridable via env). Header-based JWT remains as a fallback for
+  non-browser clients. Auth endpoints: `POST /api/auth/{login,refresh,logout}/`, `GET /api/auth/{me,csrf}/`.
+- **CORS/CSRF:** never `CORS_ALLOW_ALL_ORIGINS`. `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`
+  come from env (default to `localhost:5173` in dev). The preferred deployment keeps the API
+  same-origin via a proxy (Vite in dev, Vercel rewrite in prod), making cookies first-party `Lax`.
+- **Rate limiting:** DRF throttles — anon/user defaults plus tighter scopes for `login` (brute-force
+  defense) and the public `submit` pipeline.
+- **Transport/headers (production):** SSL redirect, HSTS (preload), secure + httpOnly cookies,
+  `X-Frame-Options: DENY`, nosniff, referrer policy. `manage.py check --deploy` passes clean.
+  The SPA adds a strict **CSP** and security headers via `frontend/vercel.json`.
+- **Static:** served by **WhiteNoise** (`collectstatic` → hashed manifest), so the Django admin
+  renders without a separate web server (works on serverless).
+- **Email Verification:** Anymail + `python-dotenv`. Dev uses the file-based backend (writes to
+  `backend/sent_emails/`); production uses Mailgun (`MAILGUN_*` in `.env`). The `is_verified` flag
+  gates voters before they may review.
+
+## Deployment (Vercel)
+
+The frontend is built for Vercel (`frontend/vercel.json`: SPA rewrites, security headers/CSP, and an
+`/api/*` rewrite that proxies to the Django backend so auth cookies stay first-party).
+
+- **Recommended:** host the **frontend on Vercel** and **Django on a long-running host** (Railway /
+  Fly.io / Render). Point the `vercel.json` `/api` rewrite at that backend URL. Django needs a real
+  database via `DATABASE_URL` (SQLite can't persist), `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`,
+  and `CSRF_TRUSTED_ORIGINS`/`CORS_ALLOWED_ORIGINS` set to the Vercel site URL.
+- **All-on-Vercel (possible, less ideal):** Django can run as a `@vercel/python` serverless function
+  (`config/wsgi.py` exposes `app`), but it **requires** an external Postgres (`DATABASE_URL`),
+  Mailgun for email, and a `collectstatic` build step. Cold starts apply. Prefer the split above.

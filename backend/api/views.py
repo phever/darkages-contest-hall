@@ -1,6 +1,6 @@
-from rest_framework import viewsets, mixins, status
-from rest_framework.decorators import action
+from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny, IsAdminUser,
 )
@@ -45,6 +45,13 @@ class EntryViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve', 'create'):
             return [AllowAny()]
         return [IsAdminUser()]
+
+    def get_throttles(self):
+        # Rate-limit the public submission pipeline more tightly than reads.
+        if self.action == 'create':
+            self.throttle_scope = 'submit'
+            return [ScopedRateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         qs = super().get_queryset()

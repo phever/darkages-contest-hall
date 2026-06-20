@@ -9,6 +9,10 @@ __pycache__/
 db.sqlite3
 media/
 static/
+staticfiles/
+backend/staticfiles/
+sent_emails/
+backend/sent_emails/
 
 # Virtual Environment
 venv/
@@ -36,6 +40,9 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
+
+# Deployment
+.vercel
 
 # OS generated files
 .DS_Store

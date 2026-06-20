@@ -1,17 +1,45 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './index.css';
+import api from './api';
 import Board from './Board';
 import SubmissionForm from './SubmissionForm';
 import Login from './Login';
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('access_token'));
+// Non-sensitive hint so we only probe /me when a session likely exists.
+const HINT_KEY = 'auth_hint';
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    setIsLoggedIn(false);
+function App() {
+  const [user, setUser] = useState(null);
+  const isLoggedIn = !!user;
+
+  // Confirm the session against the server (the token cookie is httpOnly).
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await api.get('auth/me/');
+      setUser(res.data);
+      localStorage.setItem(HINT_KEY, '1');
+      return res.data;
+    } catch {
+      setUser(null);
+      localStorage.removeItem(HINT_KEY);
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (localStorage.getItem(HINT_KEY)) {
+      refreshUser();
+    } else {
+      // Still bootstrap the CSRF cookie for anonymous actions.
+      api.get('auth/csrf/').catch(() => {});
+    }
+  }, [refreshUser]);
+
+  const handleLogout = async () => {
+    try { await api.post('auth/logout/'); } catch { /* ignore */ }
+    setUser(null);
+    localStorage.removeItem(HINT_KEY);
   };
 
   return (
@@ -36,7 +64,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Board isLoggedIn={isLoggedIn} />} />
             <Route path="/submit" element={<SubmissionForm />} />
-            <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
+            <Route path="/login" element={<Login onLogin={refreshUser} />} />
           </Routes>
         </main>
       </div>
