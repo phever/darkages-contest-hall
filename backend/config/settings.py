@@ -244,6 +244,16 @@ if IS_PRODUCTION:
     X_FRAME_OPTIONS = 'DENY'
 
 
+# --- archive object storage (MinIO on the 'gum' server, served at archive.phever.dev) ---
+
+ARCHIVE_S3_ENDPOINT = os.getenv('ARCHIVE_S3_ENDPOINT', 'https://archive.phever.dev')
+ARCHIVE_PUBLIC_BASE_URL = os.getenv('ARCHIVE_PUBLIC_BASE_URL', 'https://archive.phever.dev')
+ARCHIVE_S3_BUCKET = os.getenv('ARCHIVE_S3_BUCKET', 'archive')
+ARCHIVE_S3_ACCESS_KEY = os.getenv('ARCHIVE_S3_ACCESS_KEY', '')
+ARCHIVE_S3_SECRET_KEY = os.getenv('ARCHIVE_S3_SECRET_KEY', '')
+ARCHIVE_S3_REGION = os.getenv('ARCHIVE_S3_REGION', 'us-east-1')
+
+
 # --- email --------------------------------------------------------------------
 
 if IS_PRODUCTION:
@@ -252,7 +262,13 @@ if IS_PRODUCTION:
         "MAILGUN_API_KEY": os.getenv('MAILGUN_API_KEY'),
         "MAILGUN_SENDER_DOMAIN": os.getenv('MAILGUN_SENDER_DOMAIN'),
     }
-    DEFAULT_FROM_EMAIL = f"noreply@{os.getenv('MAILGUN_SENDER_DOMAIN')}"
+    # Set MAILGUN_API_URL=https://api.eu.mailgun.net/v3 for EU-region domains.
+    if os.getenv('MAILGUN_API_URL'):
+        ANYMAIL["MAILGUN_API_URL"] = os.getenv('MAILGUN_API_URL')
+    DEFAULT_FROM_EMAIL = os.getenv(
+        'DEFAULT_FROM_EMAIL',
+        f"Mileth College Contest Hall <noreply@{os.getenv('MAILGUN_SENDER_DOMAIN')}>",
+    )
 else:
     EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
     EMAIL_FILE_PATH = BASE_DIR / "sent_emails"

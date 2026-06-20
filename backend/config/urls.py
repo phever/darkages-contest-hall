@@ -9,6 +9,7 @@ from api.auth_views import (
     MeView,
     CSRFView,
 )
+from api.cron_views import SendRemindersView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -20,4 +21,7 @@ urlpatterns = [
     path('api/auth/logout/', LogoutView.as_view(), name='auth_logout'),
     path('api/auth/me/', MeView.as_view(), name='auth_me'),
     path('api/auth/csrf/', CSRFView.as_view(), name='auth_csrf'),
+
+    # Triggered by Vercel Cron (bearer CRON_SECRET)
+    path('api/cron/send-reminders/', SendRemindersView.as_view(), name='cron_send_reminders'),
 ]

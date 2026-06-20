@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Contest, Entry, Vote, WorkflowStep
+from .models import User, Contest, Entry, VoteIntention, WorkflowStep
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -19,21 +19,20 @@ class EntrySerializer(serializers.ModelSerializer):
     progress_text = serializers.CharField(read_only=True)
     steps_complete = serializers.IntegerField(source='current_step', read_only=True)
     total_steps = serializers.IntegerField(source='TOTAL_STEPS', read_only=True)
-    vote_count = serializers.IntegerField(source='votes.count', read_only=True)
 
     class Meta:
         model = Entry
         fields = [
             'id', 'contest', 'entrant_name', 'work_title', 'work_subject', 'content',
             'original_location_url', 'original_location_label', 'archived_location_url',
-            'review_overseer', 'review_opened', 'review_closed', 'recommendation',
-            'current_step', 'step_status', 'on_step', 'progress_text', 'steps_complete',
-            'total_steps', 'vote_count', 'submitted_at',
+            'review_overseer', 'review_opened', 'review_closed', 'review_closes_at',
+            'recommendation', 'current_step', 'step_status', 'on_step', 'progress_text',
+            'steps_complete', 'total_steps', 'submitted_at',
         ]
         # These are managed by Chancellors through the admin / workflow, not by submitters.
         read_only_fields = [
-            'review_overseer', 'review_opened', 'review_closed', 'recommendation',
-            'current_step', 'step_status', 'submitted_at',
+            'review_overseer', 'review_opened', 'review_closed', 'review_closes_at',
+            'recommendation', 'current_step', 'step_status', 'submitted_at',
         ]
 
 
@@ -77,19 +76,13 @@ class ContestListSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'description', 'info_message', 'is_active', 'entry_count']
 
 
-class VoteSerializer(serializers.ModelSerializer):
+class VoteIntentionSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
-        model = Vote
-        fields = ['id', 'user', 'username', 'entry', 'recommendation', 'comment', 'score', 'created_at']
-        read_only_fields = ['user', 'created_at']
-
-    def validate(self, attrs):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated and self.instance is None:
-            if Vote.objects.filter(user=request.user, entry=attrs.get('entry')).exists():
-                raise serializers.ValidationError(
-                    "You have already reviewed this submission."
-                )
-        return attrs
+        model = VoteIntention
+        fields = [
+            'id', 'user', 'username', 'entry', 'recommendation', 'review_text',
+            'remind_before_close', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['user', 'created_at', 'updated_at']

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import './index.css';
 import api from './api';
 import Board from './Board';
-import SubmissionForm from './SubmissionForm';
+import HowToEnter from './HowToEnter';
 import Login from './Login';
 
 // Non-sensitive hint so we only probe /me when a session likely exists.
@@ -13,7 +13,6 @@ function App() {
   const [user, setUser] = useState(null);
   const isLoggedIn = !!user;
 
-  // Confirm the session against the server (the token cookie is httpOnly).
   const refreshUser = useCallback(async () => {
     try {
       const res = await api.get('auth/me/');
@@ -31,7 +30,6 @@ function App() {
     if (localStorage.getItem(HINT_KEY)) {
       refreshUser();
     } else {
-      // Still bootstrap the CSRF cookie for anonymous actions.
       api.get('auth/csrf/').catch(() => {});
     }
   }, [refreshUser]);
@@ -51,9 +49,12 @@ function App() {
           </Link>
           <nav>
             <Link to="/">Board</Link>
-            <Link to="/submit">Submit</Link>
+            <Link to="/how-to-enter">How to Enter</Link>
             {isLoggedIn ? (
-              <button className="btn btn-outline" onClick={handleLogout}>Logout</button>
+              <>
+                {user.in_game_name && <span className="muted">{user.in_game_name}</span>}
+                <button className="btn btn-outline" onClick={handleLogout}>Logout</button>
+              </>
             ) : (
               <Link to="/login" className="btn btn-primary">Login</Link>
             )}
@@ -62,8 +63,8 @@ function App() {
 
         <main>
           <Routes>
-            <Route path="/" element={<Board isLoggedIn={isLoggedIn} />} />
-            <Route path="/submit" element={<SubmissionForm />} />
+            <Route path="/" element={<Board user={user} />} />
+            <Route path="/how-to-enter" element={<HowToEnter user={user} />} />
             <Route path="/login" element={<Login onLogin={refreshUser} />} />
           </Routes>
         </main>

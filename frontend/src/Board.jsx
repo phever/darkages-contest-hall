@@ -5,7 +5,7 @@ import EntryCard from './EntryCard';
 
 const STEP_CLASS = { 1: 's1', 2: 's2', 3: 's3', 4: 's4' };
 
-export default function Board({ isLoggedIn }) {
+export default function Board({ user }) {
   const [contest, setContest] = useState(null);
   const [error, setError] = useState(null);
   const [subject, setSubject] = useState('All');
@@ -48,12 +48,12 @@ export default function Board({ isLoggedIn }) {
             </button>
           ))}
         </div>
-        <Link to="/submit" className="btn btn-primary">+ Submit a Work</Link>
+        <Link to="/how-to-enter" className="btn btn-primary">How to Enter</Link>
       </div>
 
       <div className="submission-grid">
         {entries.map(entry => (
-          <EntryCard key={entry.id} entry={entry} isLoggedIn={isLoggedIn} />
+          <EntryCard key={entry.id} entry={entry} user={user} />
         ))}
       </div>
 

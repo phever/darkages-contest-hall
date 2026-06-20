@@ -86,6 +86,10 @@ class Entry(models.Model):
     review_overseer = models.CharField(max_length=80, blank=True)
     review_opened = models.CharField(max_length=20, blank=True, help_text="In-game date, e.g. 220.02.16")
     review_closed = models.CharField(max_length=20, blank=True, help_text="In-game date, e.g. 220.06.18")
+    review_closes_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Planned end of the review/voting period — used for noble reminders.",
+    )
     recommendation = models.CharField(
         max_length=20, choices=RECOMMENDATION_CHOICES, blank=True, default='',
     )
@@ -118,21 +122,41 @@ class Entry(models.Model):
         return f'{self.entrant_name}, "{self.work_title}"'
 
 
-class Vote(models.Model):
-    """A noble's review/recommendation on an entry (one per user per entry)."""
-    RECOMMENDATION_CHOICES = Entry.RECOMMENDATION_CHOICES[1:]  # exclude 'Pending'
+class VoteIntention(models.Model):
+    """
+    A noble's PRIVATE intended recommendation and draft review for an entry.
 
-    user = models.ForeignKey(User, related_name='votes', on_delete=models.CASCADE)
-    entry = models.ForeignKey(Entry, related_name='votes', on_delete=models.CASCADE)
-    recommendation = models.CharField(
-        max_length=20, choices=RECOMMENDATION_CHOICES, default='Village',
+    Real voting/reviewing happens in the in-game Contest Hall — this is a private
+    scratchpad a noble can prepare here and copy-paste in game. Visible only to its
+    author and to Chancellors (enforced in the API). One per user per entry.
+    """
+    RECOMMENDATION_CHOICES = (
+        ('', 'Undecided'),
+        ('Village', 'Village'),
+        ('Clave', 'Clave'),
+        ('Kingdom', 'Kingdom'),
+        ('Aisling', 'Aisling'),
+        ('No Award', 'No Award'),
     )
-    comment = models.TextField(blank=True)
-    score = models.IntegerField(default=1)
+
+    user = models.ForeignKey(User, related_name='vote_intentions', on_delete=models.CASCADE)
+    entry = models.ForeignKey(Entry, related_name='vote_intentions', on_delete=models.CASCADE)
+    recommendation = models.CharField(
+        max_length=20, choices=RECOMMENDATION_CHOICES, blank=True, default='',
+    )
+    review_text = models.TextField(
+        blank=True, help_text="Draft review to copy-paste into the in-game Contest Hall.",
+    )
+    remind_before_close = models.BooleanField(
+        default=False, help_text="Email this noble before the review period ends.",
+    )
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'entry')  # A user can only review an entry once
+        unique_together = ('user', 'entry')
+        ordering = ['-updated_at']
 
     def __str__(self):
-        return f"{self.user.username} recommended {self.recommendation} for {self.entry.work_title}"
+        return f"{self.user.username}'s intention for \"{self.entry.work_title}\""
