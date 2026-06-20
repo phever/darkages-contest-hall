@@ -108,7 +108,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
+        # On serverless (Vercel) use a pooled Neon URL and don't persist
+        # connections across invocations — default 0 in production.
+        conn_max_age=int(os.getenv('DB_CONN_MAX_AGE', '0' if IS_PRODUCTION else '600')),
         ssl_require=IS_PRODUCTION and bool(os.getenv('DATABASE_URL')),
     )
 }
