@@ -3,8 +3,8 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://YOUR-DJANGO-BACKEND.example.com/api/:path*"
+      "source": "/api/(.*)",
+      "destination": "https://collegebeta-api.vercel.app/api/$1"
     },
     {
       "source": "/((?!api/).*)",

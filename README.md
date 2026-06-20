@@ -9,6 +9,8 @@ This project takes the College’s existing contest board and turns it into a pr
 living website: a place where every submission is displayed, its progress is tracked
 from “just submitted” all the way to “nobility awarded,” and new works can be entered.
 
+**🌐 Live (beta): [collegebeta.phever.dev](https://collegebeta.phever.dev)**
+
 ---
 
 ## Why it exists

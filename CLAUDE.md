@@ -104,15 +104,30 @@ Configuration is environment-driven (`config/settings.py` reads `.env`; see `.en
   `backend/sent_emails/`); production uses Mailgun (`MAILGUN_*` in `.env`). The `is_verified` flag
   gates voters before they may review.
 
-## Deployment (Vercel)
+## Deployment (Vercel) — live
 
-The frontend is built for Vercel (`frontend/vercel.json`: SPA rewrites, security headers/CSP, and an
-`/api/*` rewrite that proxies to the Django backend so auth cookies stay first-party).
+The project runs entirely on Vercel as **two linked projects** under the `mike-penners-projects` team:
 
-- **Recommended:** host the **frontend on Vercel** and **Django on a long-running host** (Railway /
-  Fly.io / Render). Point the `vercel.json` `/api` rewrite at that backend URL. Django needs a real
-  database via `DATABASE_URL` (SQLite can't persist), `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`,
-  and `CSRF_TRUSTED_ORIGINS`/`CORS_ALLOWED_ORIGINS` set to the Vercel site URL.
-- **All-on-Vercel (possible, less ideal):** Django can run as a `@vercel/python` serverless function
-  (`config/wsgi.py` exposes `app`), but it **requires** an external Postgres (`DATABASE_URL`),
-  Mailgun for email, and a `collectstatic` build step. Cold starts apply. Prefer the split above.
+| Project | What | URL |
+|---------|------|-----|
+| `collegebeta` | Vite SPA (the board) | **https://collegebeta.phever.dev** |
+| `collegebeta-api` | Django via `@vercel/python` (Fluid Compute) | https://collegebeta-api.vercel.app |
+
+- **Database:** Neon Postgres (`neon-amethyst-branch`, Marketplace integration → injects `DATABASE_URL`).
+  Migrate/seed against the **unpooled** URL; the function uses the pooled `DATABASE_URL` with
+  `DB_CONN_MAX_AGE=0`. Run `migrate` + `seed_board` locally against `DATABASE_URL_UNPOOLED` after any
+  schema change.
+- **Same-origin proxy:** `frontend/vercel.json` rewrites `/api/(.*)` → `collegebeta-api.vercel.app/api/$1`
+  so auth cookies stay first-party on `collegebeta.phever.dev`. **Gotcha:** use the `(.*)`/`$1` form —
+  the `:path*` form silently 404s for external (cross-project) rewrites.
+- **Backend build:** `backend/vercel.json` builds `config/wsgi.py` with `@vercel/python` (explicit
+  `builds` avoids treating the Django `api/` package as functions) and `includeFiles: staticfiles/**`
+  so WhiteNoise can serve the admin assets. Run `collectstatic` before deploying.
+- **Backend prod env (set on `collegebeta-api`):** `ENVIRONMENT=production`, `DJANGO_SECRET_KEY`,
+  `DJANGO_ALLOWED_HOSTS=collegebeta.phever.dev`, `ALLOW_VERCEL_HOSTS=1`, `DB_CONN_MAX_AGE=0`,
+  `CORS_ALLOWED_ORIGINS=https://collegebeta.phever.dev`,
+  `CSRF_TRUSTED_ORIGINS=https://collegebeta.phever.dev,https://collegebeta-api.vercel.app`
+  (the second origin lets Chancellors use `/admin` on the backend domain).
+- **DNS:** `collegebeta.phever.dev` is a Cloudflare CNAME → `cname.vercel-dns.com` (DNS-only).
+- **Admin:** Chancellors manage at https://collegebeta-api.vercel.app/admin.
+- **Redeploy:** `cd backend && vercel deploy --prod` / `cd frontend && vercel deploy --prod`.
