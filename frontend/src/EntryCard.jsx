@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import api from './api';
 
-const RECOMMENDATION_OPTIONS = ['Village', 'Clave', 'Kingdom', 'Aisling', 'No Award'];
+const RECOMMENDATION_OPTIONS = [
+  ['', 'Undecided'], ['Village', 'Village'], ['Clave', 'Clave'],
+  ['Kingdom', 'Kingdom'], ['Aisling', 'Aisling'], ['No Award', 'No Award'],
+];
 
 function recClass(rec) {
   if (!rec) return 'rec-Pending';
@@ -14,8 +17,7 @@ function ProgressBar({ stepsComplete, total }) {
       <div className="step-container">
         {Array.from({ length: total }, (_, i) => {
           const n = i + 1;
-          const complete = n <= stepsComplete;
-          return <div key={n} className={`step step-${n}${complete ? ' complete' : ''}`} />;
+          return <div key={n} className={`step step-${n}${n <= stepsComplete ? ' complete' : ''}`} />;
         })}
       </div>
       <span className="progress-text">{stepsComplete}/{total}</span>
@@ -23,43 +25,136 @@ function ProgressBar({ stepsComplete, total }) {
   );
 }
 
-export default function EntryCard({ entry, isLoggedIn }) {
-  const total = entry.total_steps || 4;
-  const [showReview, setShowReview] = useState(false);
-  const [reviews, setReviews] = useState(null);
-  const [recommendation, setRecommendation] = useState('Village');
-  const [comment, setComment] = useState('');
+// A noble's private draft recommendation + review to copy into the in-game Hall.
+function VoteIntentionPanel({ entry }) {
+  const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [recommendation, setRecommendation] = useState('');
+  const [reviewText, setReviewText] = useState('');
+  const [remind, setRemind] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  const loadReviews = async () => {
+  const load = async () => {
     try {
-      const res = await api.get(`votes/?entry=${entry.id}`);
-      setReviews(res.data);
-    } catch {
-      setReviews([]);
-    }
+      const res = await api.get(`intentions/?entry=${entry.id}`);
+      const mine = res.data[0];
+      if (mine) {
+        setRecommendation(mine.recommendation || '');
+        setReviewText(mine.review_text || '');
+        setRemind(mine.remind_before_close || false);
+      }
+    } catch { /* ignore */ }
+    setLoaded(true);
   };
 
-  const toggleReview = () => {
-    const next = !showReview;
-    setShowReview(next);
-    if (next && reviews === null) loadReviews();
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && !loaded) load();
   };
 
-  const submitReview = async (e) => {
+  const save = async (e) => {
     e.preventDefault();
     setMsg(null);
     try {
-      await api.post('votes/', { entry: entry.id, recommendation, comment, score: 1 });
-      setMsg({ type: 'ok', text: 'Review recorded. Thank you, noble.' });
-      setComment('');
-      loadReviews();
-    } catch (err) {
-      const detail = err?.response?.data;
-      const text = detail?.non_field_errors?.[0] || 'You may have already reviewed this entry.';
-      setMsg({ type: 'err', text });
+      await api.post('intentions/', {
+        entry: entry.id, recommendation, review_text: reviewText, remind_before_close: remind,
+      });
+      setMsg({ type: 'ok', text: 'Saved privately. Copy it into the in-game Contest Hall when you review.' });
+    } catch {
+      setMsg({ type: 'err', text: 'Could not save your intention.' });
     }
   };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(reviewText);
+      setMsg({ type: 'ok', text: 'Review copied to clipboard.' });
+    } catch {
+      setMsg({ type: 'err', text: 'Copy failed — select the text manually.' });
+    }
+  };
+
+  return (
+    <div className="review-area">
+      <button className="btn btn-outline" style={{ width: '100%' }} onClick={toggle}>
+        {open ? 'Hide my vote intention' : '🔒 My vote intention (private)'}
+      </button>
+      {open && (
+        <>
+          {msg && <p className={`form-message ${msg.type}`}>{msg.text}</p>}
+          <p className="muted" style={{ fontSize: '0.82rem', margin: '0.6rem 0' }}>
+            Private to you and the Chancellors. Real voting happens in-game — prepare your review here
+            and copy it across.
+          </p>
+          <form onSubmit={save}>
+            <div className="input-group">
+              <label>Intended recommendation</label>
+              <select value={recommendation} onChange={e => setRecommendation(e.target.value)}>
+                {RECOMMENDATION_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </div>
+            <div className="input-group">
+              <label>Draft review</label>
+              <textarea rows={4} value={reviewText} onChange={e => setReviewText(e.target.value)}
+                placeholder="Write the review you'll submit in-game…" />
+            </div>
+            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem', fontSize: '0.85rem' }}>
+              <input type="checkbox" checked={remind} onChange={e => setRemind(e.target.checked)} style={{ width: 'auto' }} />
+              Email me before the review period ends
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save</button>
+              <button type="button" className="btn btn-outline" onClick={copy} disabled={!reviewText}>Copy review</button>
+            </div>
+          </form>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Chancellors can see every noble's intention on an entry.
+function ChancellorIntentions({ entry }) {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState(null);
+
+  const toggle = async () => {
+    const next = !open;
+    setOpen(next);
+    if (next && items === null) {
+      try {
+        const res = await api.get(`intentions/?entry=${entry.id}`);
+        setItems(res.data);
+      } catch { setItems([]); }
+    }
+  };
+
+  return (
+    <div className="review-area">
+      <button className="btn btn-outline" style={{ width: '100%' }} onClick={toggle}>
+        {open ? 'Hide nobles’ intentions' : 'Nobles’ intentions (Chancellor)'}
+      </button>
+      {open && items !== null && (
+        <div className="review-list">
+          {items.length === 0 ? <p className="muted">No intentions recorded yet.</p> : items.map(it => (
+            <div key={it.id} className="review-item">
+              <strong>{it.username}</strong>{' '}
+              <span className={`rec-badge ${recClass(it.recommendation)}`}>{it.recommendation || 'Undecided'}</span>
+              {it.remind_before_close && <span className="muted"> · wants reminder</span>}
+              {it.review_text && <div className="muted" style={{ whiteSpace: 'pre-wrap' }}>{it.review_text}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function EntryCard({ entry, user }) {
+  const total = entry.total_steps || 4;
+  const isVerifiedNoble = user?.is_verified;
+  const isChancellor = user?.role === 'admin';
 
   return (
     <div className="submission-box">
@@ -99,48 +194,8 @@ export default function EntryCard({ entry, isLoggedIn }) {
         </div>
       </div>
 
-      {isLoggedIn && (
-        <div className="review-area">
-          <button className="btn btn-outline" style={{ width: '100%' }} onClick={toggleReview}>
-            {showReview ? 'Hide Reviews' : 'Review this Submission'}
-          </button>
-
-          {showReview && (
-            <>
-              {msg && <p className={`form-message ${msg.type}`}>{msg.text}</p>}
-              <form onSubmit={submitReview} style={{ marginTop: '0.75rem' }}>
-                <div className="input-group">
-                  <label>Recommended recognition</label>
-                  <select value={recommendation} onChange={e => setRecommendation(e.target.value)}>
-                    {RECOMMENDATION_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label>Comments (optional)</label>
-                  <textarea rows={2} value={comment} onChange={e => setComment(e.target.value)} />
-                </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-                  Submit Review
-                </button>
-              </form>
-
-              {reviews !== null && (
-                <div className="review-list">
-                  {reviews.length === 0
-                    ? <p className="muted">No reviews recorded yet.</p>
-                    : reviews.map(r => (
-                        <div key={r.id} className="review-item">
-                          <strong>{r.username}</strong> recommended{' '}
-                          <span className={`rec-badge ${recClass(r.recommendation)}`}>{r.recommendation}</span>
-                          {r.comment && <div className="muted">{r.comment}</div>}
-                        </div>
-                      ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+      {isVerifiedNoble && <VoteIntentionPanel entry={entry} />}
+      {isChancellor && <ChancellorIntentions entry={entry} />}
     </div>
   );
 }

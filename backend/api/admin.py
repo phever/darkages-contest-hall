@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Contest, Entry, Vote, WorkflowStep
+from .models import User, Contest, Entry, VoteIntention, WorkflowStep
 
 
 STEP_LABELS = {
@@ -55,7 +55,7 @@ class EntryAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Work', {'fields': ('contest', 'entrant_name', 'work_title', 'work_subject', 'content')}),
         ('Locations', {'fields': ('original_location_url', 'original_location_label', 'archived_location_url')}),
-        ('Review', {'fields': ('review_overseer', 'review_opened', 'review_closed', 'recommendation')}),
+        ('Review', {'fields': ('review_overseer', 'review_opened', 'review_closed', 'review_closes_at', 'recommendation')}),
         ('Workflow', {'fields': ('current_step', 'step_status')}),
     )
 
@@ -80,7 +80,8 @@ class EntryAdmin(admin.ModelAdmin):
         self.message_user(request, f"Marked {updated} entr(y/ies) as Nobility Awarded.")
 
 
-@admin.register(Vote)
-class VoteAdmin(admin.ModelAdmin):
-    list_display = ('user', 'entry', 'recommendation', 'score', 'created_at')
-    list_filter = ('recommendation',)
+@admin.register(VoteIntention)
+class VoteIntentionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'entry', 'recommendation', 'remind_before_close', 'updated_at')
+    list_filter = ('recommendation', 'remind_before_close')
+    search_fields = ('user__username', 'entry__work_title')
