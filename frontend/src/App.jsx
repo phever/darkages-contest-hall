@@ -5,6 +5,8 @@ import api from './api';
 import Board from './Board';
 import HowToEnter from './HowToEnter';
 import Login from './Login';
+import InvitePage from './InvitePage';
+import AcceptInvite from './AcceptInvite';
 
 // Non-sensitive hint so we only probe /me when a session likely exists.
 const HINT_KEY = 'auth_hint';
@@ -12,6 +14,7 @@ const HINT_KEY = 'auth_hint';
 function App() {
   const [user, setUser] = useState(null);
   const isLoggedIn = !!user;
+  const isChancellor = user?.role === 'admin';
 
   const refreshUser = useCallback(async () => {
     try {
@@ -44,12 +47,14 @@ function App() {
     <Router>
       <div className="app-container">
         <header className="header">
-          <Link to="/" style={{ textDecoration: 'none' }}>
+          <Link to="/" className="brand">
+            <img src="/8231.png" alt="" className="header-logo" />
             <h1>Contest Hall</h1>
           </Link>
           <nav>
             <Link to="/">Board</Link>
             <Link to="/how-to-enter">How to Enter</Link>
+            {isChancellor && <Link to="/invite">Invite Nobles</Link>}
             {isLoggedIn ? (
               <>
                 {user.in_game_name && <span className="muted">{user.in_game_name}</span>}
@@ -65,6 +70,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Board user={user} />} />
             <Route path="/how-to-enter" element={<HowToEnter user={user} />} />
+            <Route path="/invite" element={<InvitePage user={user} />} />
+            <Route path="/accept-invite" element={<AcceptInvite onLogin={refreshUser} />} />
             <Route path="/login" element={<Login onLogin={refreshUser} />} />
           </Routes>
         </main>

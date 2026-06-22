@@ -607,3 +607,90 @@ select:focus { outline: none; border-color: var(--primary); }
   from { opacity: 0; transform: translateY(8px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* Wide modal variant (the entry-edit form) */
+.modal-card-wide {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 3rem);
+}
+
+.modal-scroll {
+  overflow-y: auto;
+  max-height: 60vh;
+  padding-right: 0.25rem;
+}
+
+/* Two inputs side by side inside a form */
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .input-group { flex: 1; }
+
+@media (max-width: 480px) {
+  .form-row { flex-direction: column; gap: 0; }
+}
+
+/* Brand / logo in the header */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-decoration: none;
+}
+
+.header-logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+/* Disabled / read-only inputs (e.g. Chancellor-set fields on the accept form) */
+.input-group input:disabled,
+.input-group input[readonly] {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Small button variant */
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* Invitation list (Chancellor invite page) */
+.invite-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.invite-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+
+.invite-main { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+.invite-status {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.invite-status-pending { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; }
+.invite-status-accepted { background: rgba(16, 185, 129, 0.18); color: #34d399; }
+.invite-status-expired { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }

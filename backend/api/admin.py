@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Contest, Entry, VoteIntention, WorkflowStep
+from .models import User, Contest, Entry, Invitation, VoteIntention, WorkflowStep
 
 
 @admin.register(User)
@@ -71,3 +71,11 @@ class VoteIntentionAdmin(admin.ModelAdmin):
     list_display = ('user', 'entry', 'recommendation', 'remind_before_close', 'updated_at')
     list_filter = ('recommendation', 'remind_before_close')
     search_fields = ('user__username', 'entry__work_title')
+
+
+@admin.register(Invitation)
+class InvitationAdmin(admin.ModelAdmin):
+    list_display = ('email', 'in_game_name', 'status', 'invited_by', 'created_at', 'accepted_at')
+    list_filter = ('accepted_at',)
+    search_fields = ('email', 'in_game_name')
+    readonly_fields = ('token', 'created_at', 'accepted_at', 'accepted_user', 'status')

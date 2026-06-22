@@ -1,4 +1,9 @@
-from rest_framework import viewsets, status
+import os
+
+from django.conf import settings
+from django.core.mail import send_mail
+
+from rest_framework import viewsets, status, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import (
@@ -6,11 +11,35 @@ from rest_framework.permissions import (
 )
 
 from . import storage
-from .models import Contest, Entry, VoteIntention, WorkflowStep
+from .models import Contest, Entry, Invitation, VoteIntention, WorkflowStep
 from .serializers import (
-    ContestSerializer, ContestListSerializer, EntrySerializer,
-    SubmissionSerializer, VoteIntentionSerializer, WorkflowStepSerializer,
+    ContestSerializer, ContestListSerializer, EntryAdminSerializer, EntrySerializer,
+    InvitationSerializer, SubmissionSerializer, VoteIntentionSerializer,
+    WorkflowStepSerializer,
 )
+
+BOARD_URL = os.getenv('BOARD_URL', 'https://collegebeta.phever.dev')
+
+
+def send_invitation_email(invitation):
+    """Email a new noble the link to accept their Chancellor's invitation."""
+    link = f"{BOARD_URL}/accept-invite?token={invitation.token}"
+    greeting = invitation.in_game_name or 'noble'
+    subject = "You're invited to the Mileth College Contest Hall"
+    body = "\n".join([
+        f"Hail {greeting},",
+        "",
+        "A College Chancellor has invited you to join the Mileth College Contest Hall, "
+        "where qualified nobles review contest entries and prepare their recommendations.",
+        "",
+        "Create your account here (this link expires in two weeks):",
+        link,
+        "",
+        "Your in-game name and email were set by the Chancellor and cannot be changed.",
+        "",
+        "— Mileth College Contest Hall",
+    ])
+    send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [invitation.email], fail_silently=False)
 
 
 def _is_chancellor(user):
@@ -44,6 +73,8 @@ class EntryViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return SubmissionSerializer
+        if self.action in ('update', 'partial_update'):
+            return EntryAdminSerializer
         return EntrySerializer
 
     def get_permissions(self):
@@ -134,3 +165,22 @@ class VoteIntentionViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class InvitationViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
+                        mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    """
+    Chancellor-only: send, list, and revoke account invitations. Creating an
+    invitation emails the invitee a token link to set up their account. The
+    token itself is never returned by the API — only delivered by email.
+    """
+    queryset = Invitation.objects.select_related('invited_by').all()
+    serializer_class = InvitationSerializer
+    permission_classes = [IsAdminUser]
+
+    def perform_create(self, serializer):
+        invitation = serializer.save(
+            invited_by=self.request.user,
+            token=Invitation.generate_token(),
+        )
+        send_invitation_email(invitation)

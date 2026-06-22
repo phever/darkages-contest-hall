@@ -176,6 +176,7 @@ REST_FRAMEWORK = {
         'user': os.getenv('THROTTLE_USER', '600/min'),
         'login': os.getenv('THROTTLE_LOGIN', '10/min'),
         'submit': os.getenv('THROTTLE_SUBMIT', '20/hour'),
+        'invite': os.getenv('THROTTLE_INVITE', '30/hour'),
     },
     'DEFAULT_RENDERER_CLASSES': (
         ('rest_framework.renderers.JSONRenderer',)

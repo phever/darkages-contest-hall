@@ -1,5 +1,9 @@
+import secrets
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -10,6 +14,61 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='voter')
     is_verified = models.BooleanField(default=False)
     in_game_name = models.CharField(max_length=50, blank=True)
+
+
+def _default_invite_expiry():
+    return timezone.now() + timedelta(days=14)
+
+
+class Invitation(models.Model):
+    """
+    A Chancellor's invitation for a new noble to create an account.
+
+    The Chancellor sets the invitee's email and in-game name; the noble accepts
+    via an emailed token link, choosing only a username and password. The email
+    and in-game name are fixed by the Chancellor and cannot be changed by the
+    noble. Accepting creates a verified voter account.
+    """
+    email = models.EmailField()
+    in_game_name = models.CharField(max_length=50, blank=True)
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    invited_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='sent_invitations',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(default=_default_invite_expiry)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    accepted_user = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='accepted_invitation',
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @staticmethod
+    def generate_token():
+        return secrets.token_urlsafe(32)
+
+    @property
+    def is_accepted(self):
+        return self.accepted_at is not None
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    @property
+    def status(self):
+        if self.is_accepted:
+            return 'accepted'
+        if self.is_expired:
+            return 'expired'
+        return 'pending'
+
+    def __str__(self):
+        return f"Invitation for {self.email} ({self.status})"
 
 
 class Contest(models.Model):

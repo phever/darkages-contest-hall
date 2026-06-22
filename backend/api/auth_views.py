@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 
 from rest_framework import status
@@ -11,7 +12,8 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .serializers import UserSerializer
+from .models import Invitation, User
+from .serializers import AcceptInvitationSerializer, UserSerializer
 
 
 def _set_auth_cookie(response, name, token, max_age):
@@ -112,3 +114,76 @@ class CSRFView(APIView):
 
     def get(self, request, *args, **kwargs):
         return Response({'detail': 'CSRF cookie set.'})
+
+
+def _lookup_invitation(token):
+    """Return (invitation, error_response) for a token — error_response is set
+    when the invitation is missing, used, or expired."""
+    invitation = Invitation.objects.filter(token=token).first() if token else None
+    if not invitation or invitation.is_accepted:
+        return None, Response(
+            {'detail': 'This invitation is invalid or has already been used.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    if invitation.is_expired:
+        return None, Response(
+            {'detail': 'This invitation has expired. Ask a Chancellor to send a new one.'},
+            status=status.HTTP_410_GONE,
+        )
+    return invitation, None
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class InvitationDetailView(APIView):
+    """Public: look up a pending invitation by token to prefill the accept form."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'invite'
+
+    def get(self, request, *args, **kwargs):
+        invitation, error = _lookup_invitation(request.query_params.get('token'))
+        if error:
+            return error
+        return Response({
+            'email': invitation.email,
+            'in_game_name': invitation.in_game_name,
+        })
+
+
+class AcceptInvitationView(APIView):
+    """Public: create a verified voter account from a valid invitation token.
+
+    The email and in-game name are taken from the invitation (Chancellor-set);
+    the noble only chooses a username and password. On success the new noble is
+    logged in immediately (auth cookies set on the response)."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'invite'
+
+    def post(self, request, *args, **kwargs):
+        serializer = AcceptInvitationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        invitation, error = _lookup_invitation(data['token'])
+        if error:
+            return error
+
+        user = User.objects.create_user(
+            username=data['username'],
+            email=invitation.email,
+            password=data['password'],
+            role='voter',
+            is_verified=True,
+            in_game_name=invitation.in_game_name,
+        )
+        invitation.accepted_at = timezone.now()
+        invitation.accepted_user = user
+        invitation.save(update_fields=['accepted_at', 'accepted_user'])
+
+        refresh = RefreshToken.for_user(user)
+        response = Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+        _apply_tokens(response, access=str(refresh.access_token), refresh=str(refresh))
+        return response
