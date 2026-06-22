@@ -4,11 +4,34 @@ import api from './api';
 import EntryCard from './EntryCard';
 
 const STEP_CLASS = { 1: 's1', 2: 's2', 3: 's3', 4: 's4' };
+const PAGE_SIZES = [24, 48, 96];
+const PAGE_SIZE_KEY = 'board_page_size';
+
+// Compact page list: every page when small, else a window around the current
+// page with first/last and ellipses (e.g. 1 … 4 5 6 … 12).
+function pageList(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = new Set([1, total, current, current - 1, current + 1]);
+  const sorted = [...pages].filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out = [];
+  let prev = 0;
+  for (const p of sorted) {
+    if (p - prev > 1) out.push(`gap-${p}`);
+    out.push(p);
+    prev = p;
+  }
+  return out;
+}
 
 export default function Board({ user }) {
   const [contest, setContest] = useState(null);
   const [error, setError] = useState(null);
   const [subject, setSubject] = useState('All');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() => {
+    const saved = Number(localStorage.getItem(PAGE_SIZE_KEY));
+    return PAGE_SIZES.includes(saved) ? saved : PAGE_SIZES[0];
+  });
 
   useEffect(() => {
     // The board shows the primary (first active) contest with all its entries.
@@ -30,6 +53,25 @@ export default function Board({ user }) {
     ? contest.entries
     : contest.entries.filter(e => e.work_subject === subject);
 
+  // Derive (and clamp) the current page so changing the filter/size can't strand
+  // us on an empty page — no effect needed.
+  const totalPages = Math.max(1, Math.ceil(entries.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const pageEntries = entries.slice(start, start + pageSize);
+  const showPager = entries.length > PAGE_SIZES[0];
+
+  const pickSubject = (s) => { setSubject(s); setPage(1); };
+  const pickPageSize = (n) => {
+    setPageSize(n);
+    setPage(1);
+    localStorage.setItem(PAGE_SIZE_KEY, String(n));
+  };
+  const goTo = (p) => {
+    setPage(Math.min(Math.max(1, p), totalPages));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div>
       <h1 className="board-title">{contest.title}</h1>
@@ -42,7 +84,7 @@ export default function Board({ user }) {
             <button
               key={s}
               className={`filter-chip ${subject === s ? 'active' : ''}`}
-              onClick={() => setSubject(s)}
+              onClick={() => pickSubject(s)}
             >
               {s}{s === 'All' ? ` (${contest.entries.length})` : ''}
             </button>
@@ -51,11 +93,56 @@ export default function Board({ user }) {
         <Link to="/how-to-enter" className="btn btn-primary">How to Enter</Link>
       </div>
 
+      {showPager && (
+        <div className="pager-bar">
+          <span className="pager-meta">
+            Showing {start + 1}–{start + pageEntries.length} of {entries.length}
+          </span>
+          <div className="page-size-group">
+            <span className="pager-label">Per page</span>
+            {PAGE_SIZES.map(n => (
+              <button
+                key={n}
+                className={`filter-chip ${pageSize === n ? 'active' : ''}`}
+                onClick={() => pickPageSize(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="submission-grid">
-        {entries.map(entry => (
+        {pageEntries.map(entry => (
           <EntryCard key={entry.id} entry={entry} user={user} />
         ))}
       </div>
+
+      {showPager && totalPages > 1 && (
+        <nav className="pagination" aria-label="Board pages">
+          <button className="filter-chip" onClick={() => goTo(safePage - 1)} disabled={safePage === 1}>
+            ‹ Prev
+          </button>
+          {pageList(safePage, totalPages).map(p => (
+            typeof p === 'number' ? (
+              <button
+                key={p}
+                className={`filter-chip ${p === safePage ? 'active' : ''}`}
+                onClick={() => goTo(p)}
+                aria-current={p === safePage ? 'page' : undefined}
+              >
+                {p}
+              </button>
+            ) : (
+              <span key={p} className="pager-ellipsis">…</span>
+            )
+          ))}
+          <button className="filter-chip" onClick={() => goTo(safePage + 1)} disabled={safePage === totalPages}>
+            Next ›
+          </button>
+        </nav>
+      )}
 
       {contest.steps?.length > 0 && (
         <section className="steps-section">

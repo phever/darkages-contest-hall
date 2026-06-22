@@ -283,6 +283,58 @@ a:hover {
   border-color: transparent;
 }
 
+.filter-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.filter-chip:disabled:hover {
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+/* Pagination */
+.pager-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.pager-meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.page-size-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pager-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-right: 0.15rem;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 2rem;
+}
+
+.pager-ellipsis {
+  color: var(--text-muted);
+  padding: 0 0.2rem;
+  user-select: none;
+}
+
 .submission-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
