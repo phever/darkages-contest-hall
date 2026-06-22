@@ -3,14 +3,6 @@ from django.contrib.auth.admin import UserAdmin
 from .models import User, Contest, Entry, VoteIntention, WorkflowStep
 
 
-STEP_LABELS = {
-    1: 'Submission',
-    2: 'Review',
-    3: 'Loures Confirmation',
-    4: 'Nobility Awarded',
-}
-
-
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'in_game_name', 'role', 'is_verified', 'is_staff')
@@ -65,13 +57,7 @@ class EntryAdmin(admin.ModelAdmin):
 
     @admin.action(description='Advance to next step')
     def advance_step(self, request, queryset):
-        updated = 0
-        for entry in queryset:
-            if entry.current_step < Entry.TOTAL_STEPS:
-                entry.current_step += 1
-                entry.step_status = STEP_LABELS.get(entry.current_step, entry.step_status)
-                entry.save(update_fields=['current_step', 'step_status'])
-                updated += 1
+        updated = sum(1 for entry in queryset if entry.advance_step())
         self.message_user(request, f"Advanced {updated} entr(y/ies).")
 
     @admin.action(description='Mark as Nobility Awarded (4/4)')

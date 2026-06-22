@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import api from './api';
+import ConfirmModal from './ConfirmModal';
 
 const RECOMMENDATION_OPTIONS = [
   ['', 'Undecided'], ['Village', 'Village'], ['Clave', 'Clave'],
   ['Kingdom', 'Kingdom'], ['Aisling', 'Aisling'], ['No Award', 'No Award'],
 ];
+
+// Workflow step labels — mirrors Entry.STEP_LABELS on the backend.
+const STEP_LABELS = {
+  1: 'Submission', 2: 'Review', 3: 'Loures Confirmation', 4: 'Nobility Awarded',
+};
 
 function recClass(rec) {
   if (!rec) return 'rec-Pending';
@@ -192,20 +198,98 @@ function ArchiveUploader({ entry, onUploaded }) {
   );
 }
 
+// Chancellors move an entry one step forward through the workflow, after a
+// confirmation dialog. Hidden once the work reaches the final step.
+function ChancellorProgress({ entry, step, stepStatus, total, onProgressed }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const atFinal = step >= total;
+  const nextStep = step + 1;
+
+  const close = () => { setOpen(false); setErr(null); };
+
+  const confirm = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const { data } = await api.post(`entries/${entry.id}/advance-step/`);
+      onProgressed(data);
+      setOpen(false);
+    } catch {
+      setErr('Could not progress this entry. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="review-area">
+      <button
+        className="btn btn-primary"
+        style={{ width: '100%' }}
+        onClick={() => setOpen(true)}
+        disabled={atFinal}
+      >
+        {atFinal ? '🏆 Nobility Awarded (4/4)' : '⏩ Progress contest entry'}
+      </button>
+
+      <ConfirmModal
+        open={open}
+        title="Progress this entry?"
+        confirmLabel="Yes, progress it"
+        busyLabel="Progressing…"
+        busy={busy}
+        onCancel={() => { if (!busy) close(); }}
+        onConfirm={confirm}
+      >
+        <p className="modal-entry">{entry.entrant_name}, &ldquo;{entry.work_title}&rdquo;</p>
+        <div className="modal-transition">
+          <span className="modal-step">
+            {step}/{total}<small>{stepStatus}</small>
+          </span>
+          <span className="modal-arrow" aria-hidden="true">→</span>
+          <span className="modal-step modal-step-next">
+            {nextStep}/{total}<small>{STEP_LABELS[nextStep]}</small>
+          </span>
+        </div>
+        {nextStep >= total && (
+          <p className="muted" style={{ fontSize: '0.85rem' }}>
+            This is the final step — the work will be formally recognized as <strong>Nobility Awarded</strong>.
+          </p>
+        )}
+        {err && <p className="form-message err">{err}</p>}
+      </ConfirmModal>
+    </div>
+  );
+}
+
 export default function EntryCard({ entry, user }) {
   const total = entry.total_steps || 4;
   const isVerifiedNoble = user?.is_verified;
   const isChancellor = user?.role === 'admin';
   const [archivedUrl, setArchivedUrl] = useState(entry.archived_location_url);
 
+  // Workflow progress can be advanced by Chancellors, so keep it in local state.
+  const [step, setStep] = useState(entry.steps_complete);
+  const [stepStatus, setStepStatus] = useState(entry.step_status);
+  const [onStep, setOnStep] = useState(entry.on_step);
+
+  const handleProgressed = (data) => {
+    setStep(data.steps_complete);
+    setStepStatus(data.step_status);
+    setOnStep(data.on_step);
+  };
+
   return (
     <div className="submission-box">
       <div className="box-title">{entry.entrant_name}, &ldquo;{entry.work_title}&rdquo;</div>
 
-      <ProgressBar stepsComplete={entry.steps_complete} total={total} />
+      <ProgressBar stepsComplete={step} total={total} />
 
       <div className="submission-details">
-        <div className="row"><strong>On Step:</strong><span>{entry.on_step}</span></div>
+        <div className="row"><strong>On Step:</strong><span>{onStep}</span></div>
         <div className="row"><strong>Entrant:</strong><span>{entry.entrant_name}</span></div>
         <div className="row"><strong>Work Title:</strong><span>{entry.work_title}</span></div>
         <div className="row"><strong>Work Subject:</strong><span className="subject-tag">{entry.work_subject}</span></div>
@@ -237,6 +321,15 @@ export default function EntryCard({ entry, user }) {
       </div>
 
       {isVerifiedNoble && <VoteIntentionPanel entry={entry} />}
+      {isChancellor && (
+        <ChancellorProgress
+          entry={entry}
+          step={step}
+          stepStatus={stepStatus}
+          total={total}
+          onProgressed={handleProgressed}
+        />
+      )}
       {isChancellor && <ChancellorIntentions entry={entry} />}
       {isChancellor && <ArchiveUploader entry={entry} onUploaded={setArchivedUrl} />}
     </div>

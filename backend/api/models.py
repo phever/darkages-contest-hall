@@ -62,6 +62,13 @@ class Entry(models.Model):
         ('No Award', 'No Award'),
     )
     TOTAL_STEPS = 4
+    # Label shown for each workflow position (mirrors the College progress board).
+    STEP_LABELS = {
+        1: 'Submission',
+        2: 'Review',
+        3: 'Loures Confirmation',
+        4: 'Nobility Awarded',
+    }
 
     contest = models.ForeignKey(Contest, related_name='entries', on_delete=models.CASCADE)
 
@@ -117,6 +124,16 @@ class Entry(models.Model):
     @property
     def progress_text(self):
         return f"{self.current_step}/{self.TOTAL_STEPS}"
+
+    def advance_step(self):
+        """Move this entry to the next workflow step. Returns True if it advanced,
+        False if it was already at the final step (Nobility Awarded)."""
+        if self.current_step >= self.TOTAL_STEPS:
+            return False
+        self.current_step += 1
+        self.step_status = self.STEP_LABELS.get(self.current_step, self.step_status)
+        self.save(update_fields=['current_step', 'step_status', 'updated_at'])
+        return True
 
     def __str__(self):
         return f'{self.entrant_name}, "{self.work_title}"'

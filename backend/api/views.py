@@ -67,6 +67,18 @@ class EntryViewSet(viewsets.ModelViewSet):
         entry = serializer.save()
         return Response(EntrySerializer(entry).data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['post'], url_path='advance-step',
+            permission_classes=[IsAdminUser])
+    def advance_step(self, request, pk=None):
+        """Chancellor-only: move this entry one step forward in the workflow."""
+        entry = self.get_object()
+        if not entry.advance_step():
+            return Response(
+                {'detail': 'This entry is already at the final step (Nobility Awarded).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(EntrySerializer(entry).data)
+
     @action(detail=True, methods=['post'], url_path='archive-upload-url',
             permission_classes=[IsAdminUser])
     def archive_upload_url(self, request, pk=None):
