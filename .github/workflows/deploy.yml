@@ -1,9 +1,15 @@
-name: Deploy to Vercel
+name: Deploy backend to Vercel
 
-# CI/CD for the Contest Hall. On every push to master (e.g. a merged PR) this
-# builds and deploys both Vercel projects to production. The backend job also
-# collects static assets (for the Django admin) and applies database migrations
-# to Neon before the new function goes live.
+# CI/CD for the Contest Hall *backend* (collegebeta-api).
+#
+# The FRONTEND (collegebeta) deploys automatically through Vercel's Git
+# integration (Root Directory = frontend, framework = Vite), so it is
+# deliberately NOT deployed here — doing so would double-deploy and race the
+# Git build, which is exactly what previously broke production.
+#
+# The backend still deploys from CI because it needs database migrations and
+# static-asset collection to run *before* the new function goes live, which a
+# plain Git deploy does not do.
 #
 # Required repository secrets:
 #   VERCEL_TOKEN  - a Vercel access token (https://vercel.com/account/settings/tokens)
@@ -15,7 +21,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-production
+  group: deploy-backend-production
   cancel-in-progress: false
 
 env:
@@ -54,23 +60,6 @@ jobs:
       - name: Deploy backend to Vercel (production)
         if: ${{ env.VERCEL_TOKEN != '' }}
         working-directory: backend
-        run: |
-          npm install -g vercel@latest
-          vercel deploy --prod --yes --token="$VERCEL_TOKEN"
-
-  frontend:
-    name: Deploy frontend
-    runs-on: ubuntu-latest
-    needs: backend
-    env:
-      VERCEL_PROJECT_ID: prj_qSJNXLk6qMJi7ziTV9dUCoAkQzcG
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy frontend to Vercel (production)
-        if: ${{ env.VERCEL_TOKEN != '' }}
-        working-directory: frontend
         run: |
           npm install -g vercel@latest
           vercel deploy --prod --yes --token="$VERCEL_TOKEN"

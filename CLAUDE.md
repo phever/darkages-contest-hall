@@ -134,9 +134,18 @@ The project runs entirely on Vercel as **two linked projects** under the `mike-p
 - **DNS:** `collegebeta.phever.dev` is a Cloudflare CNAME → `cname.vercel-dns.com` (DNS-only).
 - **Admin:** Chancellors manage at https://collegebeta.phever.dev/admin (proxied to Django;
   https://collegebeta-api.vercel.app/admin still works directly as a fallback).
-- **Redeploy (manual):** `cd backend && vercel deploy --prod` / `cd frontend && vercel deploy --prod`.
-- **CI/CD:** `.github/workflows/deploy.yml` runs on push to `master` (e.g. a merged PR): it installs
-  backend deps, runs `collectstatic` + `migrate` (against Neon), then `vercel deploy --prod` for both
-  projects. Project/org IDs are in the workflow; secrets needed are **`VERCEL_TOKEN`** (a Vercel
-  access token) and **`DATABASE_URL`** (the Neon *unpooled* URL, already set). Deploy steps no-op
-  until `VERCEL_TOKEN` is present.
+- **Deploy model (two paths, one per project):**
+  - **Frontend (`collegebeta`)** deploys via **Vercel's Git integration** — the repo is linked,
+    production branch `master`, **Root Directory = `frontend`**, **framework = Vite**. Every push to
+    `master` auto-builds and promotes; PR branches get preview deployments. *Gotcha:* the Root
+    Directory **must** be `frontend` — without it Vercel builds from the empty monorepo root, runs no
+    build, and ships an empty output (every route 404s, which also breaks the `/api` + `/admin`
+    proxy). Set it via dashboard (Settings → Build & Deployment) or
+    `PATCH /v9/projects/{id}` with `{"framework":"vite","rootDirectory":"frontend"}`.
+  - **Backend (`collegebeta-api`)** deploys via **GitHub Actions** (`.github/workflows/deploy.yml`)
+    on push to `master`: installs deps, runs `collectstatic` + `migrate` (against Neon), then
+    `vercel deploy --prod`. It is *not* Git-connected — CI runs the DB migration + static collection
+    that a plain Git deploy can't. Secrets: **`VERCEL_TOKEN`** and **`DATABASE_URL`** (Neon *unpooled*);
+    the deploy step no-ops until `VERCEL_TOKEN` is present.
+- **Redeploy (manual):** backend → `cd backend && vercel deploy --prod`; frontend → push to `master`
+  (or `cd frontend && vercel build --prod && vercel deploy --prebuilt --prod` to bypass build settings).
