@@ -789,6 +789,21 @@ select:focus { outline: none; border-color: var(--primary); }
   border: 1px solid rgba(251, 191, 36, 0.35);
 }
 
+/* Live board entry shown amongst Archive search results */
+.board-entry-badge {
+  display: inline-block;
+  align-self: flex-start;
+  margin-bottom: 0.85rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
 /* Stacked detail row for longer text (e.g. archive descriptions) */
 .submission-details .row-block {
   flex-direction: column;

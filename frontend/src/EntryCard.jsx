@@ -210,7 +210,7 @@ function ChancellorEdit({ entry, onSaved }) {
   );
 }
 
-export default function EntryCard({ entry, user }) {
+export default function EntryCard({ entry, user, inArchive = false }) {
   // The card holds the entry in local state so Chancellor edits (or an archive
   // upload) are reflected immediately without refetching the whole board.
   const [data, setData] = useState(entry);
@@ -223,9 +223,15 @@ export default function EntryCard({ entry, user }) {
     <div className="submission-box">
       <div className="box-title">{data.entrant_name}, &ldquo;{data.work_title}&rdquo;</div>
 
-      {archived
-        ? <div className="archived-badge">📁 Archived</div>
-        : <ProgressBar stepsComplete={data.steps_complete} total={total} />}
+      {archived ? (
+        <div className="archived-badge">📁 Archived</div>
+      ) : (
+        <>
+          {/* Live board entry surfaced in the Archive's search/filter results. */}
+          {inArchive && <div className="board-entry-badge">📋 Board Entry</div>}
+          <ProgressBar stepsComplete={data.steps_complete} total={total} />
+        </>
+      )}
 
       <div className="submission-details">
         {!archived && <div className="row"><strong>On Step:</strong><span>{data.on_step}</span></div>}

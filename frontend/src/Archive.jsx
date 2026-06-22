@@ -131,9 +131,12 @@ export default function Archive({ user }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Debounced server-side search + category filter.
+    // Debounced server-side search + category filter. When a search or category
+    // filter is active, surface live board entries too (badged "Board Entry");
+    // the default browse view stays archive-only.
     const t = setTimeout(() => {
-      const params = new URLSearchParams({ archived: 'true' });
+      const active = search.trim() !== '' || subject !== 'All';
+      const params = new URLSearchParams({ archived: active ? 'all' : 'true' });
       if (subject !== 'All') params.set('subject', subject);
       if (search.trim()) params.set('search', search.trim());
       api.get(`entries/?${params.toString()}`)
@@ -151,7 +154,8 @@ export default function Archive({ user }) {
     <div>
       <h1 className="board-title">Archive</h1>
       <div className="board-info">
-        Older contest submissions, preserved for posterity. Search by entrant or title, or filter by category.
+        Older contest submissions, preserved for posterity. Search by entrant or title, or filter by
+        category — results also include matching works still on the live board, marked “Board Entry”.
       </div>
 
       {isChancellor && <ArchiveUploadForm onAdded={handleAdded} />}
@@ -181,7 +185,7 @@ export default function Archive({ user }) {
       {items === null && !error && <p className="center mt-2 muted">Loading the Archive…</p>}
       {items !== null && items.length === 0 && (
         <p className="center mt-2 muted">
-          {filtering ? 'No archived works match your search.' : 'No works have been archived yet.'}
+          {filtering ? 'No works match your search.' : 'No works have been archived yet.'}
         </p>
       )}
       {items !== null && items.length > 0 && (
@@ -190,7 +194,7 @@ export default function Archive({ user }) {
             {items.length} work{items.length !== 1 ? 's' : ''}
           </p>
           <div className="submission-grid">
-            {items.map(entry => <EntryCard key={entry.id} entry={entry} user={user} />)}
+            {items.map(entry => <EntryCard key={entry.id} entry={entry} user={user} inArchive />)}
           </div>
         </>
       )}
