@@ -98,6 +98,74 @@ class EntryEditTests(APITestCase):
                       (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN))
 
 
+class ArchiveTests(APITestCase):
+    def setUp(self):
+        self.contest = Contest.objects.create(title='Mileth College Contest Hall')
+        self.chancellor = User.objects.create_user(
+            username='chancellor', password='x', role='admin', is_staff=True,
+        )
+        # Two live board entries...
+        Entry.objects.create(contest=self.contest, entrant_name='Aengus',
+                             work_title='On Loures', work_subject='Lore')
+        Entry.objects.create(contest=self.contest, entrant_name='Brigid',
+                             work_title='Sunhymn', work_subject='Music')
+        # ...and two archived works.
+        Entry.objects.create(contest=self.contest, entrant_name='Cael',
+                             work_title='Ancient Ballad', work_subject='Music',
+                             is_archived=True)
+        Entry.objects.create(contest=self.contest, entrant_name='Deirdre',
+                             work_title='Old Tapestry', work_subject='Art',
+                             is_archived=True)
+
+    def test_default_list_excludes_archived(self):
+        res = self.client.get('/api/entries/')
+        titles = {e['work_title'] for e in res.data}
+        self.assertEqual(titles, {'On Loures', 'Sunhymn'})
+
+    def test_archived_filter_returns_only_archived(self):
+        res = self.client.get('/api/entries/?archived=true')
+        titles = {e['work_title'] for e in res.data}
+        self.assertEqual(titles, {'Ancient Ballad', 'Old Tapestry'})
+
+    def test_archive_search_by_title(self):
+        res = self.client.get('/api/entries/?archived=true&search=tapestry')
+        self.assertEqual([e['work_title'] for e in res.data], ['Old Tapestry'])
+
+    def test_archive_search_by_entrant(self):
+        res = self.client.get('/api/entries/?archived=true&search=Cael')
+        self.assertEqual([e['work_title'] for e in res.data], ['Ancient Ballad'])
+
+    def test_archive_filter_by_category(self):
+        res = self.client.get('/api/entries/?archived=true&subject=Music')
+        self.assertEqual([e['work_title'] for e in res.data], ['Ancient Ballad'])
+
+    def test_board_contest_excludes_archived(self):
+        res = self.client.get(f'/api/contests/{self.contest.id}/')
+        titles = {e['work_title'] for e in res.data['entries']}
+        self.assertEqual(titles, {'On Loures', 'Sunhymn'})
+        self.assertEqual(res.data['entry_count'], 2)
+
+    def test_chancellor_creates_archived_work(self):
+        self.client.force_authenticate(self.chancellor)
+        res = self.client.post('/api/entries/', {
+            'contest': self.contest.id, 'entrant_name': 'Eira',
+            'work_title': 'Lost Scroll', 'work_subject': 'Literature',
+            'is_archived': True,
+        }, format='json')
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(res.data['is_archived'])
+        self.assertEqual(res.data['step_status'], 'Archived')
+
+    def test_noble_cannot_create_archived_work(self):
+        noble = User.objects.create_user(username='n', password='x', role='voter')
+        self.client.force_authenticate(noble)
+        res = self.client.post('/api/entries/', {
+            'contest': self.contest.id, 'entrant_name': 'X', 'work_title': 'Y',
+            'is_archived': True,
+        }, format='json')
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+
 class InvitationTests(APITestCase):
     def setUp(self):
         self.chancellor = User.objects.create_user(

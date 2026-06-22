@@ -42,8 +42,9 @@ Located in `/backend/api/models.py`:
 - **User:** Inherits from `AbstractUser`. Includes roles (`admin` vs `voter`), an `is_verified` boolean, and `in_game_name`.
 - **Contest:** A contest board that groups submissions. Includes title, description, an `info_message` banner, optional start/end dates, and an active status.
 - **WorkflowStep:** One of the 4 steps (number, title, description), shown in the board's "Contest Steps" section.
-- **Entry:** A submission on the board. Fields mirror the College page: `entrant_name`, `work_title`, `work_subject`, `content`, original/archived location links, `review_overseer`, `review_opened`/`review_closed` (in-game date strings, e.g. `220.02.16`), `recommendation`, and the workflow position (`current_step`, `step_status`). Exposes computed `on_step`/`progress_text`. Ordered by `-review_opened` to match the live board.
-- **Vote:** A noble's review/recommendation on an entry (recognition level + optional comment). A user may review an entry only once.
+- **Entry:** A submission on the board. Fields mirror the College page: `entrant_name`, `work_title`, `work_subject`, `content`, original/archived location links, `review_overseer`, `review_opened`/`review_closed` (in-game date strings, e.g. `220.02.16`), `recommendation`, and the workflow position (`current_step`, `step_status`). An `is_archived` flag moves a work off the live board into the searchable **Archive** (older submissions kept for posterity). Exposes computed `on_step`/`progress_text`. Ordered by `-review_opened` to match the live board.
+- **VoteIntention:** A noble's **private** draft recommendation + review for an entry (one per user per entry). Real reviewing/voting happens in-game — this is a scratchpad a noble prepares here and copies across. Visible only to its author and Chancellors; can opt into an email reminder before the review period closes.
+- **Invitation:** A Chancellor's account invitation for a new noble. Holds the invitee's `email` and `in_game_name` (Chancellor-set, read-only to the noble), a single-use, expiring `token` (14 days), and who created/accepted it. Accepting creates a verified voter.
 
 ## Running the Development Servers
 
@@ -55,7 +56,9 @@ Located in `/backend/api/models.py`:
 4. Run the development server (configured for port 8251 to avoid conflicts): `python manage.py runserver 8251`
 
 *The Admin panel is available at `http://localhost:8251/admin`.* Chancellors manage entries
-there, including bulk "Advance to next step" / "Mark as Nobility Awarded" actions.
+there, including bulk "Advance to next step" / "Mark as Nobility Awarded" / "Move to Archive"
+actions, plus Users and Invitations. Most day-to-day edits can also be done from the board itself
+(see Pages) without opening the admin.
 
 > **Note:** the virtual environment must live at the **project root** (`venv/`), matching the
 > commands above. (`requirements.txt` lives in `/backend`.)
@@ -75,8 +78,22 @@ works, and demo users. Pass `--fresh` to wipe existing entries first. Demo login
 
 *The frontend application will be available at `http://localhost:5173`.*
 
-Pages: `/` (the board — submission grid + Contest Steps section), `/submit` (the public Step-1
-submission pipeline), and `/login`. Logged-in nobles can review submissions inline from the board.
+Pages (see `frontend/src/App.jsx`):
+- `/` — the board. Submission grid (non-archived entries) with subject filtering and
+  **client-side pagination** (selectable page size 24/48/96, remembered in `localStorage`),
+  plus the "Contest Steps" section.
+- `/archive` — the **Archive** of older works (`is_archived`). Public to browse; **searchable by
+  entrant/title and filterable by category**. Chancellors get an inline form to add a work (metadata
+  + optional file upload to object storage).
+- `/how-to-enter` — entry instructions + campus map; Chancellors get a "record an entry" form.
+- `/invite` — Chancellor-only: send / list / revoke noble invitations.
+- `/accept-invite?token=…` — public: redeem an invitation (choose username + password; email and
+  in-game name are shown read-only). Logs the new noble in on success.
+- `/login` — sign in.
+
+On each board/archive card, logged-in **nobles** get a private vote-intention panel, and
+**Chancellors** get an inline **"Edit entry"** modal (edit any field, including the workflow step)
+and an archived-copy file uploader — so most edits never need the `/admin` panel.
 
 ## Security model
 
@@ -90,19 +107,28 @@ Configuration is environment-driven (`config/settings.py` reads `.env`; see `.en
   Refresh tokens **rotate and are blacklisted** on use/logout (`token_blacklist` app). Access
   lifetime 15 min, refresh 7 days (overridable via env). Header-based JWT remains as a fallback for
   non-browser clients. Auth endpoints: `POST /api/auth/{login,refresh,logout}/`, `GET /api/auth/{me,csrf}/`.
+- **Account invitations:** Chancellors invite nobles by email (`/api/invitations/` — create/list/revoke,
+  `IsAdminUser`). The Chancellor sets the invitee's `email` + `in_game_name`; these are **read-only to
+  nobles** (`UserSerializer` is fully read-only). The single-use `token` is **never returned by the API** —
+  it's delivered only by email. Public redemption: `GET /api/auth/invitation/?token=` (prefill) and
+  `POST /api/auth/accept-invite/` (creates a verified voter and logs them in via fresh auth cookies).
+  A dedicated `invite` throttle scope rate-limits the public endpoints. Entries are searchable via the
+  DRF `SearchFilter` (`?search=` over `entrant_name`/`work_title`) and filterable by `?subject=` /
+  `?archived=true`.
 - **CORS/CSRF:** never `CORS_ALLOW_ALL_ORIGINS`. `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`
   come from env (default to `localhost:5173` in dev). The preferred deployment keeps the API
   same-origin via a proxy (Vite in dev, Vercel rewrite in prod), making cookies first-party `Lax`.
 - **Rate limiting:** DRF throttles — anon/user defaults plus tighter scopes for `login` (brute-force
-  defense) and the public `submit` pipeline.
+  defense), the `submit` pipeline, and `invite` (invitation prefill/redeem).
 - **Transport/headers (production):** SSL redirect, HSTS (preload), secure + httpOnly cookies,
   `X-Frame-Options: DENY`, nosniff, referrer policy. `manage.py check --deploy` passes clean.
   The SPA adds a strict **CSP** and security headers via `frontend/vercel.json`.
 - **Static:** served by **WhiteNoise** (`collectstatic` → hashed manifest), so the Django admin
   renders without a separate web server (works on serverless).
-- **Email Verification:** Anymail + `python-dotenv`. Dev uses the file-based backend (writes to
-  `backend/sent_emails/`); production uses Mailgun (`MAILGUN_*` in `.env`). The `is_verified` flag
-  gates voters before they may review.
+- **Email:** Anymail + `python-dotenv`. Dev uses the file-based backend (writes to
+  `backend/sent_emails/`); production uses Mailgun (`MAILGUN_*` in `.env`). Used for invitation links
+  and the noble review-reminder cron. The `is_verified` flag gates voters before they may review
+  (Chancellor-invited nobles are verified on acceptance).
 
 ## Deployment (Vercel) — live
 
@@ -142,10 +168,12 @@ The project runs entirely on Vercel as **two linked projects** under the `mike-p
     build, and ships an empty output (every route 404s, which also breaks the `/api` + `/admin`
     proxy). Set it via dashboard (Settings → Build & Deployment) or
     `PATCH /v9/projects/{id}` with `{"framework":"vite","rootDirectory":"frontend"}`.
-  - **Backend (`collegebeta-api`)** deploys via **GitHub Actions** (`.github/workflows/deploy.yml`)
-    on push to `master`: installs deps, runs `collectstatic` + `migrate` (against Neon), then
-    `vercel deploy --prod`. It is *not* Git-connected — CI runs the DB migration + static collection
-    that a plain Git deploy can't. Secrets: **`VERCEL_TOKEN`** and **`DATABASE_URL`** (Neon *unpooled*);
-    the deploy step no-ops until `VERCEL_TOKEN` is present.
+  - **Backend (`collegebeta-api`)** deploys via **GitHub Actions** (`.github/workflows/deploy.yml`,
+    workflow "Deploy backend to Vercel") on push to `master`: installs deps, runs `collectstatic` +
+    `migrate` (against Neon), then `vercel deploy --prod`. It is *not* Git-connected — CI runs the DB
+    migration + static collection that a plain Git deploy can't. Required **repository Actions secrets**
+    (not environment/variable scope): **`VERCEL_TOKEN`** and **`DATABASE_URL`** (Neon *unpooled*) — both
+    are set, so pushes auto-deploy the backend. The deploy step is guarded by `if: VERCEL_TOKEN != ''`,
+    so it silently no-ops if the secret is ever missing/misplaced (verify with `gh secret list`).
 - **Redeploy (manual):** backend → `cd backend && vercel deploy --prod`; frontend → push to `master`
   (or `cd frontend && vercel build --prod && vercel deploy --prebuilt --prod` to bypass build settings).

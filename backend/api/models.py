@@ -167,6 +167,13 @@ class Entry(models.Model):
         help_text="Label for the current step, e.g. 'Loures Confirmation' or 'Nobility Awarded'.",
     )
 
+    # Archive: older works kept for posterity. Archived entries are hidden from
+    # the live progress board and shown in the searchable Archive section instead.
+    is_archived = models.BooleanField(
+        default=False,
+        help_text="Show this work in the Archive (older submissions) instead of the live board.",
+    )
+
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

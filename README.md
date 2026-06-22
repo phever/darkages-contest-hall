@@ -46,28 +46,41 @@ receive **No Award**.
 
 ---
 
+## The Archive
+
+Beyond the active board, the site keeps an **Archive** of older submissions so nothing from
+the College’s history is lost. Chancellors add archived works — and can attach a preserved copy
+of each — and anyone can **search the Archive by entrant or title, or filter it by category**.
+
+---
+
 ## What you can do
 
 Depending on who you are, the site offers different things:
 
 - **Anyone (a visitor)** can browse the board, filter works by subject (Art, Literature,
-  Lore, Philosophy, and more), and follow links to read each piece.
-- **Entrants** can submit a new work through a simple form. It enters the board at
-  Step 1 and waits for a Chancellor to open it for review.
-- **Nobles (verified reviewers)** can sign in and leave a recommendation and comments on
-  a submission — this is the judging that drives a work toward recognition.
-- **Chancellors (the College’s administrators)** manage everything behind the scenes:
-  accepting submissions, moving them through the steps, recording the final outcome, and
-  managing who’s allowed to review.
+  Lore, Philosophy, and more), page through them **24, 48, or 96 at a time**, and follow links
+  to read each piece. Anyone can also browse the **Archive** and search or filter it.
+- **Entrants** enter their work **in‑game** at the Contest Hall; the “How to Enter” page explains
+  how. A Chancellor then records the entry on the board, where it begins at Step 1 and waits to
+  be opened for review.
+- **Nobles (verified reviewers)** can sign in and privately prepare a recommendation and review
+  for any work, then copy it into the in‑game hall when they cast it — and can ask to be emailed
+  before a review period closes.
+- **Chancellors (the College’s administrators)** run everything: recording and **editing entries
+  right from the board**, moving them through the steps, recording the final outcome, curating the
+  **Archive**, and **inviting new nobles by email**.
 
 ---
 
 ## A note on trust and privacy
 
-Reviewing is limited to verified nobles, and signing in is handled securely — your
-session is protected and your login is never stored anywhere a malicious webpage could
-reach it. The public can read the board freely; only the right people can judge or
-administer it.
+New reviewers join by **invitation**: a Chancellor emails an invite (setting the noble’s name
+and email, which the noble can’t change), and the noble follows the link to choose their own
+username and password. Reviewing is limited to verified nobles, and signing in is handled
+securely — your session is protected and your login is never stored anywhere a malicious webpage
+could reach it. The public can read the board and Archive freely; only the right people can judge
+or administer them.
 
 ---
 

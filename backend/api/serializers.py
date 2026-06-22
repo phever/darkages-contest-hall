@@ -33,12 +33,12 @@ class EntrySerializer(serializers.ModelSerializer):
             'original_location_url', 'original_location_label', 'archived_location_url',
             'review_overseer', 'review_opened', 'review_closed', 'review_closes_at',
             'recommendation', 'current_step', 'step_status', 'on_step', 'progress_text',
-            'steps_complete', 'total_steps', 'submitted_at',
+            'steps_complete', 'total_steps', 'is_archived', 'submitted_at',
         ]
         # These are managed by Chancellors through the admin / workflow, not by submitters.
         read_only_fields = [
             'review_overseer', 'review_opened', 'review_closed', 'review_closes_at',
-            'recommendation', 'current_step', 'step_status', 'submitted_at',
+            'recommendation', 'current_step', 'step_status', 'is_archived', 'submitted_at',
         ]
 
 
@@ -56,25 +56,30 @@ class EntryAdminSerializer(EntrySerializer):
 
 
 class SubmissionSerializer(serializers.ModelSerializer):
-    """Public-facing serializer for the Step 1 submission pipeline."""
+    """Chancellor-facing create serializer for board entries and archive works."""
     class Meta:
         model = Entry
         fields = [
             'id', 'contest', 'entrant_name', 'work_title', 'work_subject', 'content',
-            'original_location_url', 'original_location_label',
+            'original_location_url', 'original_location_label', 'archived_location_url',
+            'is_archived',
         ]
 
     def create(self, validated_data):
-        # New submissions always enter the board at Step 1: Submission.
-        validated_data['current_step'] = 1
-        validated_data['step_status'] = 'Submission'
+        # Archived works are historical; live submissions enter at Step 1.
+        if validated_data.get('is_archived'):
+            validated_data['current_step'] = Entry.TOTAL_STEPS
+            validated_data['step_status'] = 'Archived'
+        else:
+            validated_data['current_step'] = 1
+            validated_data['step_status'] = 'Submission'
         return super().create(validated_data)
 
 
 class ContestSerializer(serializers.ModelSerializer):
-    entries = EntrySerializer(many=True, read_only=True)
+    entries = serializers.SerializerMethodField()
     steps = serializers.SerializerMethodField()
-    entry_count = serializers.IntegerField(source='entries.count', read_only=True)
+    entry_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Contest
@@ -82,6 +87,14 @@ class ContestSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'info_message', 'start_date', 'end_date',
             'is_active', 'entry_count', 'entries', 'steps',
         ]
+
+    def get_entries(self, obj):
+        # The live board shows only non-archived works (archives live in /archive).
+        qs = obj.entries.filter(is_archived=False)
+        return EntrySerializer(qs, many=True).data
+
+    def get_entry_count(self, obj):
+        return obj.entries.filter(is_archived=False).count()
 
     def get_steps(self, obj):
         return WorkflowStepSerializer(WorkflowStep.objects.all(), many=True).data

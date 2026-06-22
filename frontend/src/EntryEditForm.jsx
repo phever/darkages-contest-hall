@@ -133,14 +133,16 @@ export default function EntryEditForm({ entry, onClose, onSaved }) {
                   {RECOMMENDATION_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
-              <div className="input-group">
-                <label>Workflow Step</label>
-                <select value={form.current_step} onChange={set('current_step')}>
-                  {[1, 2, 3, 4].map(n => (
-                    <option key={n} value={n}>{n}/4 — {STEP_LABELS[n]}</option>
-                  ))}
-                </select>
-              </div>
+              {!entry.is_archived && (
+                <div className="input-group">
+                  <label>Workflow Step</label>
+                  <select value={form.current_step} onChange={set('current_step')}>
+                    {[1, 2, 3, 4].map(n => (
+                      <option key={n} value={n}>{n}/4 — {STEP_LABELS[n]}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
           <div className="modal-actions">

@@ -7,6 +7,7 @@ import HowToEnter from './HowToEnter';
 import Login from './Login';
 import InvitePage from './InvitePage';
 import AcceptInvite from './AcceptInvite';
+import Archive from './Archive';
 
 // Non-sensitive hint so we only probe /me when a session likely exists.
 const HINT_KEY = 'auth_hint';
@@ -53,6 +54,7 @@ function App() {
           </Link>
           <nav>
             <Link to="/">Board</Link>
+            <Link to="/archive">Archive</Link>
             <Link to="/how-to-enter">How to Enter</Link>
             {isChancellor && <Link to="/invite">Invite Nobles</Link>}
             {isLoggedIn ? (
@@ -69,6 +71,7 @@ function App() {
         <main>
           <Routes>
             <Route path="/" element={<Board user={user} />} />
+            <Route path="/archive" element={<Archive user={user} />} />
             <Route path="/how-to-enter" element={<HowToEnter user={user} />} />
             <Route path="/invite" element={<InvitePage user={user} />} />
             <Route path="/accept-invite" element={<AcceptInvite onLogin={refreshUser} />} />

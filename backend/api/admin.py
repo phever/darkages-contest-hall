@@ -39,16 +39,16 @@ class WorkflowStepAdmin(admin.ModelAdmin):
 class EntryAdmin(admin.ModelAdmin):
     list_display = (
         'entrant_name', 'work_title', 'work_subject', 'on_step',
-        'recommendation', 'review_overseer', 'contest',
+        'recommendation', 'review_overseer', 'is_archived', 'contest',
     )
-    list_filter = ('work_subject', 'current_step', 'recommendation', 'contest')
+    list_filter = ('is_archived', 'work_subject', 'current_step', 'recommendation', 'contest')
     search_fields = ('entrant_name', 'work_title', 'review_overseer')
-    actions = ('advance_step', 'mark_nobility_awarded')
+    actions = ('advance_step', 'mark_nobility_awarded', 'move_to_archive')
     fieldsets = (
         ('Work', {'fields': ('contest', 'entrant_name', 'work_title', 'work_subject', 'content')}),
         ('Locations', {'fields': ('original_location_url', 'original_location_label', 'archived_location_url')}),
         ('Review', {'fields': ('review_overseer', 'review_opened', 'review_closed', 'review_closes_at', 'recommendation')}),
-        ('Workflow', {'fields': ('current_step', 'step_status')}),
+        ('Workflow', {'fields': ('current_step', 'step_status', 'is_archived')}),
     )
 
     @admin.display(description='On Step')
@@ -64,6 +64,11 @@ class EntryAdmin(admin.ModelAdmin):
     def mark_nobility_awarded(self, request, queryset):
         updated = queryset.update(current_step=4, step_status='Nobility Awarded')
         self.message_user(request, f"Marked {updated} entr(y/ies) as Nobility Awarded.")
+
+    @admin.action(description='Move to Archive')
+    def move_to_archive(self, request, queryset):
+        updated = queryset.update(is_archived=True)
+        self.message_user(request, f"Moved {updated} entr(y/ies) to the Archive.")
 
 
 @admin.register(VoteIntention)

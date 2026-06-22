@@ -217,18 +217,24 @@ export default function EntryCard({ entry, user }) {
   const total = data.total_steps || 4;
   const isVerifiedNoble = user?.is_verified;
   const isChancellor = user?.role === 'admin';
+  const archived = data.is_archived;
 
   return (
     <div className="submission-box">
       <div className="box-title">{data.entrant_name}, &ldquo;{data.work_title}&rdquo;</div>
 
-      <ProgressBar stepsComplete={data.steps_complete} total={total} />
+      {archived
+        ? <div className="archived-badge">📁 Archived</div>
+        : <ProgressBar stepsComplete={data.steps_complete} total={total} />}
 
       <div className="submission-details">
-        <div className="row"><strong>On Step:</strong><span>{data.on_step}</span></div>
+        {!archived && <div className="row"><strong>On Step:</strong><span>{data.on_step}</span></div>}
         <div className="row"><strong>Entrant:</strong><span>{data.entrant_name}</span></div>
         <div className="row"><strong>Work Title:</strong><span>{data.work_title}</span></div>
         <div className="row"><strong>Work Subject:</strong><span className="subject-tag">{data.work_subject}</span></div>
+        {archived && data.content && (
+          <div className="row row-block"><strong>Description:</strong><span>{data.content}</span></div>
+        )}
         <div className="row">
           <strong>Original Work Location:</strong>
           <span>
@@ -245,9 +251,9 @@ export default function EntryCard({ entry, user }) {
               : <span className="muted">—</span>}
           </span>
         </div>
-        <div className="row"><strong>Review Overseer:</strong><span>{data.review_overseer || '—'}</span></div>
-        <div className="row"><strong>Review Opened:</strong><span>{data.review_opened || '—'}</span></div>
-        <div className="row"><strong>Review Closed:</strong><span>{data.review_closed || '—'}</span></div>
+        {!archived && <div className="row"><strong>Review Overseer:</strong><span>{data.review_overseer || '—'}</span></div>}
+        {!archived && <div className="row"><strong>Review Opened:</strong><span>{data.review_opened || '—'}</span></div>}
+        {!archived && <div className="row"><strong>Review Closed:</strong><span>{data.review_closed || '—'}</span></div>}
         <div className="row">
           <strong>Recommendation:</strong>
           <span className={`rec-badge ${recClass(data.recommendation)}`}>
@@ -256,9 +262,9 @@ export default function EntryCard({ entry, user }) {
         </div>
       </div>
 
-      {isVerifiedNoble && <VoteIntentionPanel entry={data} />}
+      {!archived && isVerifiedNoble && <VoteIntentionPanel entry={data} />}
       {isChancellor && <ChancellorEdit entry={data} onSaved={setData} />}
-      {isChancellor && <ChancellorIntentions entry={data} />}
+      {!archived && isChancellor && <ChancellorIntentions entry={data} />}
       {isChancellor && (
         <ArchiveUploader
           entry={data}

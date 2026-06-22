@@ -3,7 +3,7 @@ import os
 from django.conf import settings
 from django.core.mail import send_mail
 
-from rest_framework import viewsets, status, mixins
+from rest_framework import viewsets, status, mixins, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import (
@@ -69,6 +69,9 @@ class EntryViewSet(viewsets.ModelViewSet):
     Chancellor records it here.
     """
     queryset = Entry.objects.select_related('contest').all()
+    # Search the Archive (and board) by entrant name or work title via ?search=.
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['entrant_name', 'work_title']
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -90,6 +93,12 @@ class EntryViewSet(viewsets.ModelViewSet):
         subject = self.request.query_params.get('subject')
         if subject:
             qs = qs.filter(work_subject=subject)
+        # archived: 'true' → Archive only, 'all' → everything, default → live board.
+        archived = self.request.query_params.get('archived')
+        if archived == 'true':
+            qs = qs.filter(is_archived=True)
+        elif archived != 'all':
+            qs = qs.filter(is_archived=False)
         return qs
 
     def create(self, request, *args, **kwargs):
