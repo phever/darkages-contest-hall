@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from './api';
 
-const SUBJECTS = ['Art', 'Literature', 'Lore', 'Philosophy', 'History', 'Persona', 'Music', 'Other'];
+const SUBJECTS = ['Art', 'Literature', 'Lore', 'Philosophy', 'History', 'Persona'];
 
 const RECOMMENDATION_OPTIONS = [
   ['', 'Pending'], ['Village', 'Village'], ['Clave', 'Clave'],
@@ -18,7 +18,7 @@ function initialForm(entry) {
   return {
     entrant_name: entry.entrant_name || '',
     work_title: entry.work_title || '',
-    work_subject: entry.work_subject || 'Other',
+    work_subject: entry.work_subject || 'Literature',
     original_location_url: entry.original_location_url || '',
     original_location_label: entry.original_location_label || '',
     content: entry.content || '',

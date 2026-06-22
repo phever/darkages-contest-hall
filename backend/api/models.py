@@ -108,8 +108,6 @@ class Entry(models.Model):
         ('Philosophy', 'Philosophy'),
         ('History', 'History'),
         ('Persona', 'Persona'),
-        ('Music', 'Music'),
-        ('Other', 'Other'),
     )
     # Recognition levels that may be recommended for a work.
     RECOMMENDATION_CHOICES = (
@@ -134,7 +132,7 @@ class Entry(models.Model):
     # Core work identity
     entrant_name = models.CharField(max_length=80, help_text="Entrant's in-game name.")
     work_title = models.CharField(max_length=200)
-    work_subject = models.CharField(max_length=20, choices=SUBJECT_CHOICES, default='Other')
+    work_subject = models.CharField(max_length=20, choices=SUBJECT_CHOICES, default='Literature')
     content = models.TextField(blank=True, help_text="Submission text or archived content.")
 
     # Where the work lives

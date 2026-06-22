@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from './api';
 import EntryCard from './EntryCard';
 
-const SUBJECTS = ['Art', 'Literature', 'Lore', 'Philosophy', 'History', 'Persona', 'Music', 'Other'];
+const SUBJECTS = ['Art', 'Literature', 'Lore', 'Philosophy', 'History', 'Persona'];
 
 // Chancellor-only form to add an older work to the Archive: records the metadata
 // (is_archived) and, optionally, uploads the archived copy to object storage.

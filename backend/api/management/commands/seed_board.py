@@ -83,7 +83,7 @@ class Command(BaseCommand):
                 entrant_name=row['entrant_name'],
                 work_title=row['work_title'],
                 defaults={
-                    'work_subject': row.get('work_subject', 'Other'),
+                    'work_subject': row.get('work_subject', 'Literature'),
                     'original_location_url': row.get('original_location_url', ''),
                     'original_location_label': row.get('original_location_label', ''),
                     'archived_location_url': row.get('archived_location_url', ''),

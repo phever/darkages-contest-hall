@@ -108,10 +108,10 @@ class ArchiveTests(APITestCase):
         Entry.objects.create(contest=self.contest, entrant_name='Aengus',
                              work_title='On Loures', work_subject='Lore')
         Entry.objects.create(contest=self.contest, entrant_name='Brigid',
-                             work_title='Sunhymn', work_subject='Music')
+                             work_title='Sunhymn', work_subject='Persona')
         # ...and two archived works.
         Entry.objects.create(contest=self.contest, entrant_name='Cael',
-                             work_title='Ancient Ballad', work_subject='Music',
+                             work_title='Ancient Ballad', work_subject='Persona',
                              is_archived=True)
         Entry.objects.create(contest=self.contest, entrant_name='Deirdre',
                              work_title='Old Tapestry', work_subject='Art',
@@ -136,7 +136,7 @@ class ArchiveTests(APITestCase):
         self.assertEqual([e['work_title'] for e in res.data], ['Ancient Ballad'])
 
     def test_archive_filter_by_category(self):
-        res = self.client.get('/api/entries/?archived=true&subject=Music')
+        res = self.client.get('/api/entries/?archived=true&subject=Persona')
         self.assertEqual([e['work_title'] for e in res.data], ['Ancient Ballad'])
 
     def test_board_contest_excludes_archived(self):

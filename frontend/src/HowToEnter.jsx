@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from './api';
 
-const SUBJECTS = ['Art', 'Literature', 'Lore', 'Philosophy', 'History', 'Persona', 'Music', 'Other'];
+const SUBJECTS = ['Art', 'Literature', 'Lore', 'Philosophy', 'History', 'Persona'];
 
 const STEPS = [
   ['Bring your work to the College', 'Travel in-game to the Mileth College Contest Hall (see the map below) and present your entry to a College Chancellor.'],
